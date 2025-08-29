@@ -75,128 +75,176 @@ UI与交互:
 
 **注：**基于next-shadcn-dashboard-starter构建，使用自建认证系统以保护敏感数据。
 
-## 4. Architecture Principles（架构原则）
+## 4. Philosophy & Architecture（理念与架构原则）
 
-1. **数据主权** - 所有数据必须存储在自控环境
-2. **零信任安全** - 每个请求都需要验证授权
-3. **最小权限** - 用户只能访问必要的资源
-4. **审计优先** - 所有敏感操作必须记录
-5. **简单可控** - 避免复杂的第三方依赖
-6. **防御纵深** - 多层安全防护机制
+### 核心理念
 
-## 5. Development Conventions（开发约定）
+1. **渐进式改进** - 优先选择可通过编译和测试的小步变更。
+2. **从现有代码学习** - 在实现前，先研究和规划。
+3. **实用主义** - 适应项目现实，而非拘泥于教条。
+4. **清晰意图** - 代码应清晰直白，避免过度聪明的技巧。
+
+### 核心编程准则
+
+1. **DRY (Don't Repeat Yourself)** - 避免重复。任何一段知识（代码、逻辑、配置）在系统中都应该有单一、明确、权威的表示。优先选择复用，而不是复制粘贴。
+2. **YAGNI (You Ain't Gonna Need It)** - 保持简单。只实现当前阶段真正需要的功能，避免为未来可能的需求进行过度设计和过早的抽象。
+
+### 架构原则
+
+1. **数据主权** - 所有数据必须存储在自控环境。
+2. **零信任安全** - 每个请求都需要验证授权。
+3. **最小权限** - 用户只能访问必要的资源。
+4. **审计优先** - 所有敏感操作必须记录。
+5. **组合优于继承** - 优先使用依赖注入和组合模式。
+6. **显式优于隐式** - 保证清晰的数据流和依赖关系。
+
+## 5. Decision Framework（决策框架）
+
+当存在多个有效方法时，按以下优先级选择：
+
+1. **可测试性** - 我能轻松地为它编写测试吗？
+2. **可读性** - 六个月后，其他人能理解这段代码吗？
+3. **一致性** - 这是否符合项目现有的模式和约定？
+4. **简洁性** - 这是能解决问题的最简单的方案吗？
+5. **可逆性** - 如果未来需要修改，这个决策的成本有多高？
+
+## 6. Development Conventions（开发约定）
 
 ### 文件组织
 
 ```
 project_root/
-├── src/
-│   ├── app/          # Next.js App Router (API and UI routes)
-│   ├── features/     # Feature modules (business logic)
-│   ├── components/   # Shared UI components
-│   ├── lib/          # Core libraries, services, and utilities
-│   ├── hooks/        # Shared custom React Hooks
-│   ├── stores/       # Global state management (Zod)
-│   ├── config/       # Application configuration
-│   ├── constants/    # Constant values
-│   └── types/        # Global TypeScript types
-└── tests/            # Global tests (cross-feature)
-    ├── e2e/          # End-to-end tests
-    ├── integration/  # Cross-feature integration tests
-    └── component/    # Shared component tests
+├── prisma/                # Prisma 数据库定义
+│   ├── schema.prisma      # 数据库模型 Schema
+│   └── migrations/        # 数据库迁移历史
+│
+├── src/                   # 应用程序源代码
+│   ├── app/               # Next.js 15 App Router
+│   │   ├── api/           # API路由 (后端控制器层)
+│   │   ├── (auth)/        # 认证页面路由组
+│   │   └── (dashboard)/   # 主应用页面路由组
+│   ├── features/          # 功能模块 (特定业务域的代码)
+│   ├── components/        # 共享UI组件 (跨功能复用)
+│   ├── lib/               # 核心共享库
+│   │   ├── auth/          # 认证配置和工具
+│   │   ├── db/            # 数据库连接 (Prisma Client)
+│   │   ├── validations/   # 共享的数据验证 schemas (Zod)
+│   │   ├── services/      # 共享的业务服务层
+│   │   └── utils/         # 通用工具函数
+│   ├── hooks/             # 共享的自定义React Hooks
+│   ├── constants/         # 全局常量
+│   ├── config/            # 应用配置
+│   └── types/             # 全局TypeScript类型定义 (包括共享DTO)
+│
+└── ... (package.json, next.config.js, etc.)
 ```
 
 ### 命名规范
 
-- 文件名：kebab-case（如 `product-form.tsx`）
-- 目录名：kebab-case（如 `products/`）
-- 组件导出：named export + PascalCase（如 `export function ProductForm`）
-- 工具函数：named export + camelCase（如 `export function formatDate`）
-- 自定义Hooks：named export + camelCase（如 `export function useDebounce`）
-- 常量：named export + UPPER_SNAKE_CASE（如 `export const MAX_FILE_SIZE`）
-- 页面组件：default export（Next.js要求，如 `export default function HomePage`）
-
-### 路由约定（Next.js 15 App Router）
-
-- 路由组：`(name)/` - 组织路由但不影响URL
-- 动态路由：`[param]/` - 如 `[productId]/`
-- 捕获所有：`[[...slug]]/` - 如 `[[...sign-in]]/`
-- 平行路由：`@name/` - 如 `@sales/`
-
-### 导入约定
-
-- 使用绝对导入：`@/` 前缀
-- 避免相对导入：不使用 `../../../`
-- UI组件：`@/components/ui/`
-- Feature组件：`@/features/[feature]/components/`
-
-### 状态管理策略
-
-- 客户端状态：Zustand stores
-- URL状态：通过Nuqs管理
-- 表单状态：React Hook Form + Zod验证
-- 服务端数据：简单API调用（无缓存层）
+- **文件/目录**: `kebab-case`
+- **Prisma模型**: `PascalCase`
+- **数据库表**: `snake_case`
+- **TypeScript**: `PascalCase` (类型/接口/DTO), `camelCase` (函数/变量)
 
 ### 代码质量标准
 
-- 每个函数单一职责
-- 避免超过3层的嵌套
-- 优先使用纯函数
-- 错误处理明确且有意义
-- 所有用户输入必须验证
+- **每次提交必须**:
+  - ✅ 编译成功
+  - ✅ 通过所有现有测试
+  - ✅ 为新功能包含测试
+  - ✅ 遵循项目的格式化和Linting规范
+- **提交前检查**:
+  - 运行格式化和Linting工具
+  - 自我审查变更内容
+  - 确保提交信息解释了“为什么”
 
-## 6. Key Commands（关键命令）
+### 错误处理标准
+
+- **快速失败** - 提供具有描述性的错误信息。
+- **包含上下文** - 错误信息应包含足以调试的上下文。
+- **分层处理** - 在合适的抽象层级处理错误。
+- **禁止静默忽略** - 绝不静默地吞掉异常。
+
+## 7. Backend Architecture & Conventions（后端架构与约定）
+
+### 1. API 设计规范
+
+- **风格**: 严格遵循 RESTful API 设计风格。
+- **数据契约**: **必须** 使用DTO (Data Transfer Objects) 作为API的数据契约，严禁直接暴露数据库模型。
+- **响应结构**: 采用统一的JSON响应格式 (`{ data: T | null, error: string | null }`)。
+- **版本控制**: 默认为v1，未来可通过URL进行版本控制 (e.g., `/api/v2/...`)。
+
+### 2. 认证与授权
+
+- **机制**: 使用 NextAuth.js 管理的 JWT 进行无状态认证。
+- **流程**: RBAC 检查必须在服务层执行，API路由仅做初步会话校验。
+- **原则**: 所有API端点默认拒绝访问，必须显式授权。
+
+### 3. 服务层模式
+
+- **职责分离**: API路由 (`route.ts`) 仅作为瘦控制器，负责解析HTTP请求和序列化响应。
+- **业务逻辑**: 所有核心业务逻辑、数据验证和复杂计算必须封装在 `src/lib/services/` 的服务模块中。
+- **DTO转换**: 服务层 **核心职责** 之一是将内部数据库模型映射为安全的、面向外部的DTO。
+
+### 4. 数据库与ORM约定
+
+- **单一事实来源**: `prisma/schema.prisma` 是数据库结构的唯一权威。
+- **迁移**: 任何数据库变更必须通过 `prisma migrate dev` 生成迁移文件。
+- **查询**: 禁止在代码中使用原生SQL，所有数据访问必须通过Prisma Client。
+
+### 5. 配置与密钥管理
+
+- **环境变量**: 所有配置（数据库连接、API密钥、JWT密钥）必须通过环境变量加载。
+- **安全性**: 严禁将任何敏感信息硬编码在代码中。`.env` 文件必须在 `.gitignore` 中。
+- **启动校验**: 应用启动时必须校验所有必需的环境变量是否存在。
+
+## 8. Key Commands（关键命令）
 
 ```bash
 # 初始设置
-cp env.example.txt .env.local    # 创建环境变量（可选，支持Clerk无密钥模式）
+cp env.example.txt .env.local    # 创建环境变量
 npm install                      # 安装依赖
 
 # 开发
-npm run dev                      # 启动开发服务器（Turbopack加速）
+npm run dev                      # 启动开发服务器
 npm run build                    # 构建生产版本
 npm run start                    # 启动生产服务器
 
+# 数据库
+npx prisma migrate dev           # 应用数据库迁移
+npx prisma studio                # 启动Prisma Studio
+
 # 代码质量
-npm run typecheck               # TypeScript类型检查（快速）
-npm run typecheck:watch         # 持续监控类型检查
+npm run typecheck               # TypeScript类型检查
 npm run lint                    # ESLint检查
 npm run lint:fix               # 自动修复lint问题
-npm run lint:strict            # 严格模式（零警告，用于CI）
 npm run format                 # 格式化代码
-npm run format:check           # 检查格式（不修改文件）
-
-# 开发工作流（推荐）
-npm run typecheck && npm run lint:strict  # 提交前完整检查
 ```
 
-## 7. Feature Module Pattern（功能模块模式）
+## 9. Feature Module Pattern（功能模块模式）
 
 ### 模块结构
 
 ```
 features/
 └── [feature-name]/
-    ├── __tests__/        # 功能模块内部测试
-    │   ├── components/   # 组件测试
-    │   ├── hooks/        # Hooks测试
-    │   └── services/     # 单元测试 (业务逻辑)
-    ├── components/       # 功能特定组件
-    ├── hooks/            # 功能特定hooks
-    ├── services/         # 功能特定业务逻辑
-    ├── stores/           # 功能特定状态管理
-    ├── types/            # 功能特定类型
+    ├── __tests__/
+    │   ├── services/     # 业务逻辑单元测试
+    │   └── components/   # 组件测试
+    ├── services/         # 功能特定的后端业务逻辑
+    ├── components/       # 功能特定的前端组件
+    ├── hooks/            # 功能特定的React Hooks
+    ├── validations/      # 功能特定的Zod schemas
+    ├── types/            # 功能特定的类型定义 (包括DTO)
     └── index.ts          # 模块统一导出
 ```
 
 ### 模块原则
 
-- 每个功能模块自包含
-- 避免模块间直接依赖
-- 通过共享组件和工具复用代码
-- 保持模块边界清晰
+- **共享优先**: 优先将可复用逻辑（Services, Components, Hooks）放在顶层 `lib/`, `components/`, `hooks/` 目录中。
+- **功能特定**: 仅当某段代码与特定业务功能紧密耦合且不可复用时，才将其放入 `features/` 目录。
 
-## 8. Testing Strategy（测试策略）
+## 10. Testing Strategy（测试策略）
 
 为确保平台稳定、可靠并保护数据完整性，我们采用基于测试金字塔和功能模块化（Feature-First）原则的分层测试策略。
 
@@ -230,7 +278,7 @@ features/
 - **提交时 (CI)**: 自动运行所有单元、组件和集成测试。
 - **发布前**: 运行完整的测试套件，包括E2E测试，确保关键流程无误。
 
-## 9. Quick Links（快速链接）
+## 11. Quick Links（快速链接）
 
 - **模板文档**: `/TEMPLATE_README.md`
 - **API文档**: 运行项目后访问 `/api-docs`（待实现）
