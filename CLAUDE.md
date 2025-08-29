@@ -29,49 +29,14 @@
 
 ## 3. Tech Stack（技术栈）
 
-```yaml
-核心框架:
-  - Next.js 15 (App Router)
-  - TypeScript 5.7+
-  - React 19
-
-数据存储:
-  - MySQL 8.0+ # 自建数据库
-  - Prisma 5+ # 类型安全ORM
-
-认证授权:
-  - NextAuth.js v5 # 自建认证系统
-  - bcryptjs 2.4+ # 密码加密
-  - 自研RBAC # 权限系统
-
-监控与质量:
-  - ESLint 8+ # 代码检查
-  - Prettier 3+ # 代码格式化
-  - Husky 9+ # Git钩子
-
-UI与交互:
-  - shadcn/ui # UI组件库
-  - Tailwind CSS v4
-  - Recharts 2.15+ # 图表
-  - Tanstack Table 8+ # 表格
-  - React Hook Form 7+ + Zod 3+
-
-状态管理:
-  - Zustand 5+ # 全局状态管理
-  - Nuqs 2+ # URL状态
-
-用户体验:
-  - Kbar # 命令面板(⌘+K)
-  - Sonner # 通知系统
-  - Motion 11+ # 动画
-  - nextjs-toploader 3+ # 加载进度
-
-开发工具:
-  - lint-staged 15+ # 暂存区检查
-  - date-fns 4+ # 日期处理
-  - @dnd-kit 6+ # 拖拽功能
-  - uuid 11+ # 唯一ID
-```
+**核心**: Next.js 15 (App Router) / TypeScript / React 19  
+**数据**: MySQL + Prisma ORM  
+**认证**: NextAuth.js v5 + bcryptjs + 自研RBAC  
+**UI**: shadcn/ui + Tailwind CSS v4 + React Hook Form + Zod  
+**状态**: Zustand (全局) + Nuqs (URL)  
+**表格图表**: Tanstack Table + Recharts  
+**用户体验**: Kbar (⌘+K) + Sonner (通知) + Motion (动画)  
+**开发工具**: ESLint + Prettier + Husky + lint-staged
 
 ## 4. Philosophy & Architecture（理念与架构原则）
 
@@ -218,11 +183,13 @@ features/
 ## 7. Backend Essentials（后端要点）
 
 ### API 约定
+
 - **RESTful风格** + DTO模式（禁止直接暴露Prisma模型）
 - **统一响应**: `{ data: T | null, error: string | null }`
 - **认证**: NextAuth.js v5 + JWT（RBAC在服务层检查）
 
 ### 代码结构
+
 ```typescript
 // API路由：仅做控制器
 export async function POST(request: Request) {
@@ -241,6 +208,7 @@ export const vulnerabilityService = {
 ```
 
 ### 环境配置
+
 ```bash
 # .env.local（必需变量）
 DATABASE_URL="mysql://..."
@@ -251,20 +219,22 @@ NEXTAUTH_URL="http://localhost:3000"
 ## 8. Frontend Essentials（前端要点）
 
 ### 状态管理
+
 - **本地状态**: React内置 `useState/useReducer`
 - **全局状态**: Zustand（用户会话、API数据、配置）
 - **URL状态**: Nuqs（筛选器、分页等可分享状态）
 
 ### 代码结构
+
 ```typescript
 // 自定义Hook：数据获取逻辑
 export function useVulnerabilities() {
   const { data, loading, error } = useVulnStore();
-  
+
   const fetchVulns = useCallback(async () => {
     // 与API交互逻辑
   }, []);
-  
+
   return { vulnerabilities: data, loading, error, fetchVulns };
 }
 
@@ -273,7 +243,7 @@ const VulnForm = () => {
   const form = useForm<CreateVulnSchema>({
     resolver: zodResolver(createVulnSchema)
   });
-  
+
   return <Form {...form}>...</Form>;
 };
 ```
@@ -281,11 +251,13 @@ const VulnForm = () => {
 ## 9. Testing Strategy（测试策略）
 
 ### 核心原则
+
 - **测试行为而非实现** - 关注功能是否正常，而非内部细节
 - **就近原则** - 测试文件放在被测代码的 `__tests__` 目录
 - **命名清晰** - 测试描述应说明场景和预期结果
 
 ### 测试命令
+
 ```bash
 # 运行测试
 npm test                 # 运行所有测试
@@ -297,6 +269,7 @@ npm test -- user.test.ts
 ```
 
 ### 文件命名
+
 - 单元/集成测试: `*.test.ts(x)`
 - 组件测试: `*.component.test.tsx`
 - E2E测试: `*.e2e.test.ts`
@@ -304,24 +277,11 @@ npm test -- user.test.ts
 ## 10. Key Commands（关键命令）
 
 ```bash
-# 初始设置
-cp env.example.txt .env.local    # 创建环境变量
-npm install                      # 安装依赖
-
-# 开发
-npm run dev                      # 启动开发服务器
-npm run build                    # 构建生产版本
-npm run start                    # 启动生产服务器
-
-# 数据库
-npx prisma migrate dev           # 应用数据库迁移
-npx prisma studio                # 启动Prisma Studio
-
-# 代码质量
-npm run typecheck               # TypeScript类型检查
-npm run lint                    # ESLint检查
-npm run lint:fix               # 自动修复lint问题
-npm run format                 # 格式化代码
+cp env.example.txt .env.local && npm install  # 初始设置
+npm run dev                                   # 开发
+npx prisma migrate dev                        # 数据库迁移
+npx prisma studio                             # 数据库管理
+npm run typecheck && npm run lint:fix         # 代码检查
 ```
 
 ## 11. Quick Links（快速链接）
