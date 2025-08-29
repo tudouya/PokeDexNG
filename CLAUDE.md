@@ -7,6 +7,7 @@
 ## 2. Boundaries（边界）
 
 **核心功能：**
+
 - 项目管理 - 渗透测试项目全生命周期管理
 - 漏洞记录 - 完整记录漏洞信息、POC、复现步骤
 - 知识管理 - 构建可复用的漏洞知识库
@@ -14,12 +15,14 @@
 
 **平台定位：**
 这是一个漏洞信息管理平台，专注于：
+
 - ✅ 记录和组织渗透测试发现
 - ✅ 安全存储POC和敏感信息
 - ✅ 协作和知识共享
 - ✅ 自动化报告生成
 
 **明确边界：**
+
 - 不是扫描工具 - 不执行自动化漏洞扫描
 - 不是攻击平台 - 不提供漏洞利用执行环境
 - 不是通用PM工具 - 专注于安全测试场景
@@ -84,23 +87,27 @@ UI与交互:
 ## 5. Development Conventions（开发约定）
 
 ### 文件组织
+
 ```
-src/
-├── app/          # Next.js 15 App Router
-│   ├── (auth)/   # 认证路由组
-│   └── (dashboard)/ # 主应用路由组
-├── features/     # 功能模块（按业务划分）
-├── components/   # 共享UI组件
-│   ├── ui/       # 基础UI组件
-│   └── layout/   # 布局组件
-├── hooks/        # 自定义React Hooks
-├── lib/          # 核心工具函数
-├── constants/    # 常量定义
-├── config/       # 配置文件
-└── types/        # TypeScript类型定义
+project_root/
+├── src/
+│   ├── app/          # Next.js App Router (API and UI routes)
+│   ├── features/     # Feature modules (business logic)
+│   ├── components/   # Shared UI components
+│   ├── lib/          # Core libraries, services, and utilities
+│   ├── hooks/        # Shared custom React Hooks
+│   ├── stores/       # Global state management (Zod)
+│   ├── config/       # Application configuration
+│   ├── constants/    # Constant values
+│   └── types/        # Global TypeScript types
+└── tests/            # Global tests (cross-feature)
+    ├── e2e/          # End-to-end tests
+    ├── integration/  # Cross-feature integration tests
+    └── component/    # Shared component tests
 ```
 
 ### 命名规范
+
 - 文件名：kebab-case（如 `product-form.tsx`）
 - 目录名：kebab-case（如 `products/`）
 - 组件导出：named export + PascalCase（如 `export function ProductForm`）
@@ -110,26 +117,28 @@ src/
 - 页面组件：default export（Next.js要求，如 `export default function HomePage`）
 
 ### 路由约定（Next.js 15 App Router）
+
 - 路由组：`(name)/` - 组织路由但不影响URL
 - 动态路由：`[param]/` - 如 `[productId]/`
 - 捕获所有：`[[...slug]]/` - 如 `[[...sign-in]]/`
 - 平行路由：`@name/` - 如 `@sales/`
 
-
-
 ### 导入约定
+
 - 使用绝对导入：`@/` 前缀
 - 避免相对导入：不使用 `../../../`
 - UI组件：`@/components/ui/`
 - Feature组件：`@/features/[feature]/components/`
 
 ### 状态管理策略
+
 - 客户端状态：Zustand stores
 - URL状态：通过Nuqs管理
 - 表单状态：React Hook Form + Zod验证
 - 服务端数据：简单API调用（无缓存层）
 
 ### 代码质量标准
+
 - 每个函数单一职责
 - 避免超过3层的嵌套
 - 优先使用纯函数
@@ -164,58 +173,64 @@ npm run typecheck && npm run lint:strict  # 提交前完整检查
 ## 7. Feature Module Pattern（功能模块模式）
 
 ### 模块结构
+
 ```
 features/
-└── feature-name/
-    ├── components/   # 功能特定组件
-    ├── hooks/        # 功能特定hooks
-    ├── utils/        # 功能特定工具
-    ├── types/        # 功能特定类型
-    └── constants/    # 功能特定常量
+└── [feature-name]/
+    ├── __tests__/        # 功能模块内部测试
+    │   ├── components/   # 组件测试
+    │   ├── hooks/        # Hooks测试
+    │   └── services/     # 单元测试 (业务逻辑)
+    ├── components/       # 功能特定组件
+    ├── hooks/            # 功能特定hooks
+    ├── services/         # 功能特定业务逻辑
+    ├── stores/           # 功能特定状态管理
+    ├── types/            # 功能特定类型
+    └── index.ts          # 模块统一导出
 ```
 
 ### 模块原则
+
 - 每个功能模块自包含
 - 避免模块间直接依赖
 - 通过共享组件和工具复用代码
 - 保持模块边界清晰
 
-## 8. Decision Log（决策日志）
+## 8. Testing Strategy（测试策略）
 
-### 为什么选择Next.js？
-- 需要SSR提升性能和SEO
-- 内置API路由简化架构
-- 优秀的开发体验和生态系统
+为确保平台稳定、可靠并保护数据完整性，我们采用基于测试金字塔和功能模块化（Feature-First）原则的分层测试策略。
 
-### 为什么用MySQL + Prisma？
-- 关系型数据适合漏洞管理场景
-- Prisma提供类型安全和迁移管理
-- 团队对MySQL运维经验丰富
+### 1. Guiding Principles（指导原则）
 
-### 为什么自建认证而不用Clerk？
-- 漏洞信息属于敏感数据，需要数据主权
-- 合规要求不允许使用第三方认证
-- 需要与业务逻辑深度集成的权限控制
+- **可测试性优先**: 在做技术决策时，优先选择最易于测试的方案。
+- **测试行为，而非实现**: 测试应关注组件或函数的功能，而不是其内部实现细节。
+- **清晰命名**: 测试描述应清晰地说明其测试的场景和预期结果。
+- **确定性**: 测试必须是可靠且可重复的，每次运行都应产生相同的结果。
+- **遵循约定**: 使用项目中已建立的测试工具和模式，保持一致性。
 
-### 为什么不需要Redis？
-- 企业内部系统，并发量极小
-- 避免过度工程化，保持简单
+### 2. Testing Layers & Tooling（测试分层与工具）
 
-## 9. Important Notes（重要说明）
+- **单元测试 (Unit Tests)**: 测试单个函数、Hook或无外部依赖的服务。使用 `Jest`。
+- **组件测试 (Component Tests)**: 测试UI组件的交互和渲染逻辑。使用 `Jest` + `React Testing Library`。
+- **集成测试 (Integration Tests)**: 测试多个模块的协作，特别是涉及API路由和数据库交互的场景。使用 `Jest`。
+- **端到端测试 (E2E Tests)**: 模拟真实用户，测试完整的核心业务流程。推荐使用 `Playwright`。
 
-### 安全考虑
-- 所有用户输入必须经过验证
-- 敏感操作需要权限检查
-- 漏洞信息加密存储
-- 完整的操作审计日志
+### 3. Directory & Naming Conventions（目录与命名约定）
 
-### 开发提示
-- 基于starter模板进行功能开发
-- 优先实现核心功能（项目、漏洞、报告）
-- 每个功能模块独立开发和测试
-- 定期review代码安全性
+- **就近原则**: 单元和组件测试与源代码放在所属功能模块的 `__tests__` 目录内。
+- **全局测试**: 跨模块的集成测试和E2E测试放在根 `tests/` 目录。
+- **命名规范**:
+  - 单元/集成测试: `*.test.ts(x)`
+  - 组件测试: `*.component.test.tsx`
+  - E2E测试: `*.e2e.test.ts`
 
-## 10. Quick Links（快速链接）
+### 4. Execution Strategy（执行策略）
+
+- **开发时**: 运行与当前开发任务相关的单元和组件测试，以获得快速反馈。
+- **提交时 (CI)**: 自动运行所有单元、组件和集成测试。
+- **发布前**: 运行完整的测试套件，包括E2E测试，确保关键流程无误。
+
+## 9. Quick Links（快速链接）
 
 - **模板文档**: `/TEMPLATE_README.md`
 - **API文档**: 运行项目后访问 `/api-docs`（待实现）
