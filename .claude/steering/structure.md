@@ -3,6 +3,7 @@
 ## Project Organization
 
 ### Directory Structure
+
 ```
 project_root/
 ├── .claude/                   # Claude-specific configuration and steering
@@ -36,6 +37,7 @@ project_root/
 ```
 
 ### Feature Module Structure
+
 ```
 features/
 └── [feature-name]/            # Example: vulnerability-management
@@ -53,6 +55,7 @@ features/
 ## Naming Conventions
 
 ### Files and Directories
+
 - **File Names**: `kebab-case` (e.g., `vulnerability-form.tsx`, `user-profile.tsx`)
 - **Directory Names**: `kebab-case` (e.g., `vulnerability-management/`, `user-settings/`)
 - **Component Files**: `.tsx` extension for React components
@@ -60,6 +63,7 @@ features/
 - **Test Files**: `.test.ts` or `.test.tsx` extension
 
 ### Code Exports and Naming
+
 - **React Components**: Named export + PascalCase
   ```typescript
   export function VulnerabilityForm() { ... }
@@ -87,6 +91,7 @@ features/
   ```
 
 ### Database and Data Layer
+
 - **Prisma Models**: PascalCase (e.g., `User`, `Vulnerability`, `Project`)
 - **Database Tables**: snake_case (e.g., `users`, `vulnerabilities`, `project_members`)
 - **TypeScript Types/Interfaces**: PascalCase (e.g., `UserDTO`, `CreateVulnRequest`)
@@ -95,12 +100,15 @@ features/
 ## Module Organization Principles
 
 ### Shared vs. Feature-Specific
+
 1. **Shared First**: Place reusable logic in top-level directories
+
    - `lib/` for utilities, services, and configurations
    - `components/` for UI components used across features
    - `hooks/` for React hooks used in multiple places
 
 2. **Feature-Specific Second**: Use `features/` only for tightly coupled code
+
    - Business logic specific to one domain
    - Components that won't be reused elsewhere
    - Feature-specific types and validations
@@ -110,12 +118,14 @@ features/
    - Shared component tests in `components/__tests__/`
 
 ### Import and Export Strategy
+
 - **Absolute Imports**: Always use `@/` prefix, never relative imports
+
   ```typescript
   // ✅ Correct
   import { VulnerabilityForm } from '@/features/vulnerability-management/components';
   import { formatDate } from '@/lib/utils';
-  
+
   // ❌ Incorrect
   import { VulnerabilityForm } from '../../../features/vulnerability-management/components';
   ```
@@ -131,7 +141,9 @@ features/
 ## Next.js 15 App Router Conventions
 
 ### Route Organization
+
 - **Route Groups**: `(name)/` for organization without URL impact
+
   ```
   app/
   ├── (auth)/
@@ -143,6 +155,7 @@ features/
   ```
 
 - **Dynamic Routes**: `[param]/` for URL parameters
+
   ```
   app/
   └── projects/
@@ -163,6 +176,7 @@ features/
   ```
 
 ### File Conventions
+
 - **page.tsx**: Route page components (default export)
 - **layout.tsx**: Nested layouts for route groups
 - **loading.tsx**: Loading UI for Suspense boundaries
@@ -172,12 +186,14 @@ features/
 ## Coding Standards
 
 ### TypeScript Configuration
+
 - **Strict Mode**: Enabled for type safety
 - **No Implicit Any**: Prevent untyped variables
 - **Exact Optional Properties**: Precise interface definitions
 - **No Unused Variables**: Keep code clean
 
 ### Component Patterns
+
 ```typescript
 // ✅ Preferred component structure
 interface VulnerabilityFormProps {
@@ -186,34 +202,42 @@ interface VulnerabilityFormProps {
   onCancel: () => void;
 }
 
-export function VulnerabilityForm({ 
-  vulnerability, 
-  onSubmit, 
-  onCancel 
+export function VulnerabilityForm({
+  vulnerability,
+  onSubmit,
+  onCancel
 }: VulnerabilityFormProps) {
   // Component implementation
 }
 ```
 
 ### API Route Patterns
+
 ```typescript
 // ✅ Preferred API route structure
 export async function GET(request: Request) {
   try {
     const session = await getServerSession();
     if (!session) {
-      return Response.json({ status: 'fail', data: { message: 'Unauthorized' } }, { status: 401 });
+      return Response.json(
+        { status: 'fail', data: { message: 'Unauthorized' } },
+        { status: 401 }
+      );
     }
-    
+
     const data = await vulnerabilityService.getAll(session.user);
     return Response.json({ status: 'success', data });
   } catch (error) {
-    return Response.json({ status: 'error', message: 'Internal server error' }, { status: 500 });
+    return Response.json(
+      { status: 'error', message: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 ```
 
 ### Error Handling Standards
+
 - **Fast Fail**: Provide descriptive error messages early
 - **Context Inclusion**: Include debugging information in errors
 - **Layered Handling**: Handle errors at appropriate abstraction levels
@@ -222,6 +246,7 @@ export async function GET(request: Request) {
 ## Data Flow Architecture
 
 ### Frontend Data Flow
+
 1. **UI Components** trigger actions
 2. **Custom Hooks** manage API calls and state
 3. **Services** handle business logic
@@ -229,6 +254,7 @@ export async function GET(request: Request) {
 5. **Database** stores/retrieves data
 
 ### Backend Service Pattern
+
 ```typescript
 // Service layer handles business logic and DTO conversion
 export const vulnerabilityService = {
@@ -237,7 +263,7 @@ export const vulnerabilityService = {
     const vulnerability = await prisma.vulnerability.create({
       data: { ...input, userId: user.id }
     });
-    
+
     // Convert to safe DTO
     return toVulnDTO(vulnerability);
   }
@@ -247,19 +273,21 @@ export const vulnerabilityService = {
 ## Testing Strategy
 
 ### Test Organization
+
 - **Unit Tests**: `*.test.ts` for individual functions
-- **Component Tests**: `*.component.test.tsx` for React components  
+- **Component Tests**: `*.component.test.tsx` for React components
 - **Integration Tests**: `*.integration.test.ts` for feature workflows
 - **E2E Tests**: `*.e2e.test.ts` for full user journeys
 
 ### Test Naming and Structure
+
 ```typescript
 describe('VulnerabilityForm', () => {
   describe('when creating a new vulnerability', () => {
     it('should validate required fields', () => {
       // Test implementation
     });
-    
+
     it('should submit form with valid data', () => {
       // Test implementation
     });
@@ -280,12 +308,14 @@ When choosing between multiple valid approaches, prioritize by:
 ## Quality Gates
 
 ### Pre-commit Requirements
+
 - **TypeScript Compilation**: All code must compile without errors
 - **Linting**: ESLint must pass with zero warnings
 - **Formatting**: Prettier must format all code consistently
 - **Tests**: All existing tests must pass
 
 ### Pull Request Requirements
+
 - **Code Review**: Required approval from team member
 - **Test Coverage**: New features must include tests
 - **Documentation**: Public APIs must be documented
