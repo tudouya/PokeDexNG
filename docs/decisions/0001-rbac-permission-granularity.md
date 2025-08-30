@@ -10,10 +10,12 @@
 在设计Pokedex渗透测试平台的RBAC权限系统时，我们面临一个核心架构决策：如何平衡权限控制的灵活性与系统复杂度。
 
 具体问题：
+
 - 是否在权限表中定义细粒度权限（如`vulnerability.read.own`, `vulnerability.read.all`）？
 - 还是使用粗粒度权限结合业务逻辑来实现数据访问控制？
 
 这个决策将影响：
+
 - 权限表的复杂度和维护成本
 - 业务逻辑的清晰度
 - 系统的扩展性和性能
@@ -27,16 +29,17 @@
 ```typescript
 // 权限示例
 permissions = [
-  'vulnerability.read.own',     // 读取自己的漏洞
-  'vulnerability.read.project', // 读取项目内漏洞  
-  'vulnerability.read.all',     // 读取所有漏洞
-  'vulnerability.update.own',   // 更新自己的漏洞
-  'vulnerability.update.all',   // 更新所有漏洞
+  'vulnerability.read.own', // 读取自己的漏洞
+  'vulnerability.read.project', // 读取项目内漏洞
+  'vulnerability.read.all', // 读取所有漏洞
+  'vulnerability.update.own', // 更新自己的漏洞
+  'vulnerability.update.all' // 更新所有漏洞
   // ... 更多组合
-]
+];
 ```
 
 - **优点**:
+
   - 权限控制最精确，配置灵活
   - 完全通过RBAC配置，不依赖业务逻辑
   - 符合传统企业级权限管理思路
@@ -56,18 +59,18 @@ permissions = [
 ```typescript
 // 权限示例
 permissions = [
-  'vulnerability.read',    // 读取漏洞权限
-  'vulnerability.create',  // 创建漏洞权限
-  'vulnerability.update',  // 更新漏洞权限
-  'vulnerability.delete'   // 删除漏洞权限
-]
+  'vulnerability.read', // 读取漏洞权限
+  'vulnerability.create', // 创建漏洞权限
+  'vulnerability.update', // 更新漏洞权限
+  'vulnerability.delete' // 删除漏洞权限
+];
 
 // 业务逻辑控制数据范围
 function getVulnerabilities(userId: string, userRoles: string[]) {
   if (!hasPermission(userRoles, 'vulnerability.read')) {
     throw new Error('无权限');
   }
-  
+
   // 根据角色决定数据范围
   if (isSecurityEngineer(userRoles)) {
     return getVulnerabilitiesCreatedBy(userId); // 只看自己创建的
@@ -80,6 +83,7 @@ function getVulnerabilities(userId: string, userRoles: string[]) {
 ```
 
 - **优点**:
+
   - 权限表精简（预估20个核心权限）
   - RBAC配置简单，易于理解
   - 业务逻辑清晰，数据访问规则集中管理
@@ -97,6 +101,7 @@ function getVulnerabilities(userId: string, userRoles: string[]) {
 核心权限使用细粒度控制，非核心权限使用粗粒度+业务逻辑。
 
 - **优点**:
+
   - 平衡了灵活性和复杂度
   - 可以针对不同场景选择不同策略
 
@@ -147,11 +152,11 @@ function getVulnerabilities(userId: string, userRoles: string[]) {
 
 ## 监控和度量
 
-- **成功指标**: 
+- **成功指标**:
   - 权限相关bug数量 < 1个/月
   - 新增权限需求的实现时间 < 1天
   - 权限检查性能开销 < 10ms
-- **风险指标**: 
+- **风险指标**:
   - 权限逻辑散落在多处，难以维护
   - 出现权限绕过的安全问题
   - 业务逻辑与权限检查耦合过紧
