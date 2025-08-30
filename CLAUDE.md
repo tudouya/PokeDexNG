@@ -16,10 +16,10 @@
 **平台定位：**
 这是一个漏洞信息管理平台，专注于：
 
-- ✅ 记录和组织渗透测试发现
-- ✅ 安全存储POC和敏感信息
-- ✅ 协作和知识共享
-- ✅ 自动化报告生成
+- 记录和组织渗透测试发现
+- 安全存储POC和敏感信息
+- 协作和知识共享
+- 自动化报告生成
 
 **明确边界：**
 
@@ -102,7 +102,7 @@ project_root/
 └── ... (package.json, next.config.js, etc.)
 ```
 
-#### Feature Module详细结构
+### Feature Module详细结构
 
 ```
 features/
@@ -164,10 +164,10 @@ features/
 ### 代码质量标准
 
 - **每次提交必须**:
-  - ✅ 编译成功
-  - ✅ 通过所有现有测试
-  - ✅ 为新功能包含测试
-  - ✅ 遵循项目的格式化和Linting规范
+  - 编译成功
+  - 通过所有现有测试
+  - 为新功能包含测试
+  - 遵循项目的格式化和Linting规范
 - **提交前检查**:
   - 运行格式化和Linting工具
   - 自我审查变更内容
@@ -185,17 +185,25 @@ features/
 ### API 约定
 
 - **RESTful风格** + DTO模式（禁止直接暴露Prisma模型）
-- **统一响应**: `{ data: T | null, error: string | null }`
+- **响应格式**: 采用JSend标准（success/fail/error三态）
 - **认证**: NextAuth.js v5 + JWT（RBAC在服务层检查）
 
 ### 代码结构
 
 ```typescript
-// API路由：仅做控制器
+// API路由：仅做控制器，返回JSend格式
 export async function POST(request: Request) {
-  const user = await getServerSession();
-  const data = await vulnerabilityService.create(user, body);
-  return Response.json({ data, error: null });
+  try {
+    const user = await getServerSession();
+    const body = await request.json();
+    const data = await vulnerabilityService.create(user, body);
+    return Response.json({ status: 'success', data });
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return Response.json({ status: 'fail', data: error.errors }, { status: 400 });
+    }
+    return Response.json({ status: 'error', message: '服务器错误' }, { status: 500 });
+  }
 }
 
 // 服务层：业务逻辑 + DTO转换
@@ -224,28 +232,37 @@ NEXTAUTH_URL="http://localhost:3000"
 - **全局状态**: Zustand（用户会话、API数据、配置）
 - **URL状态**: Nuqs（筛选器、分页等可分享状态）
 
-### 代码结构
+### 数据获取规范
+
+- **必须使用** `/docs/templates/hooks.md` 中定义的标准Hook模板
+- **禁止** 直接在组件中调用fetch或自行实现数据获取逻辑  
+- **所有API调用** 必须通过标准化Hook处理JSend响应格式
+- **错误处理** 必须使用统一的错误类型和显示组件
+
+### 代码结构示例
 
 ```typescript
-// 自定义Hook：数据获取逻辑
-export function useVulnerabilities() {
-  const { data, loading, error } = useVulnStore();
+// ✅ 正确：使用标准Hook模板
+import { useApiData } from '@/hooks/useApiData';
 
-  const fetchVulns = useCallback(async () => {
-    // 与API交互逻辑
-  }, []);
+export function VulnerabilityList() {
+  const { data, loading, error, refetch } = useApiData<Vulnerability[]>(
+    '/api/vulnerabilities',
+    { immediate: true }
+  );
 
-  return { vulnerabilities: data, loading, error, fetchVulns };
+  if (loading) return <Loading />;
+  if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
+  
+  return <div>{/* 渲染数据 */}</div>;
 }
 
-// 表单：React Hook Form + Zod
-const VulnForm = () => {
-  const form = useForm<CreateVulnSchema>({
-    resolver: zodResolver(createVulnSchema)
-  });
-
-  return <Form {...form}>...</Form>;
-};
+// ❌ 错误：直接使用fetch
+export function BadExample() {
+  useEffect(() => {
+    fetch('/api/vulnerabilities').then(/* ... */); // 禁止这样做
+  }, []);
+}
 ```
 
 ## 9. Testing Strategy（测试策略）
