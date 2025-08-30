@@ -303,9 +303,8 @@ npm run typecheck && npm run lint:fix         # 代码检查
 
 ## 11. Quick Links（快速链接）
 
-- **模板文档**: `/TEMPLATE_README.md`
-- **API文档**: 运行项目后访问 `/api-docs`（待实现）
-- **部署指南**: `/docs/deployment.md`（待创建）
-- **贡献指南**: `/CONTRIBUTING.md`（待创建）
-- **项目看板**: GitHub Projects
-- **问题追踪**: GitHub Issues
+### 开发资源
+- **Hook模板**: `/docs/templates/hooks.md`
+- **技术决策**: `/docs/decisions/` - 重要架构和技术选择的决策记录
+- **技术债务**: `/docs/tech-debt.md` - 已知问题、临时方案、待重构项
+- **临时想法**: `/docs/ideas.md` - 功能建议、改进想法、实验性方案
