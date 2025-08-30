@@ -38,7 +38,7 @@ type JSendResponse<T, E = any> = JSendSuccess<T> | JSendFail<E> | JSendError;
 ## 错误类型定义
 
 ```typescript
-export type ApiError = 
+export type ApiError =
   | { type: 'network'; message: string }
   | { type: 'server'; message: string; code?: number }
   | { type: 'validation'; details: Record<string, string> }
@@ -64,91 +64,100 @@ export function useApiData<T, P = any>(
   const [error, setError] = useState<ApiError | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const execute = useCallback(async (params?: P): Promise<T | null> => {
-    // 取消之前的请求
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const config: RequestInit = {
-        signal: controller.signal,
-        method: options?.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...options?.headers,
-        },
-      };
-
-      if (params && (options?.method === 'POST' || options?.method === 'PUT')) {
-        config.body = JSON.stringify(params);
+  const execute = useCallback(
+    async (params?: P): Promise<T | null> => {
+      // 取消之前的请求
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
 
-      const response = await fetch(endpoint, config);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-      const json: JSendResponse<T> = await response.json();
+      try {
+        setLoading(true);
+        setError(null);
 
-      switch (json.status) {
-        case 'success':
-          setData(json.data);
-          return json.data;
-
-        case 'fail':
-          if (response.status === 404) {
-            setError({ type: 'not_found', resource: endpoint });
-          } else if (response.status === 401 || response.status === 403) {
-            setError({ 
-              type: 'unauthorized', 
-              message: typeof json.data === 'string' ? json.data : '权限不足' 
-            });
-          } else {
-            setError({ 
-              type: 'validation', 
-              details: typeof json.data === 'object' ? json.data : { error: '验证失败' }
-            });
+        const config: RequestInit = {
+          signal: controller.signal,
+          method: options?.method || 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...options?.headers
           }
-          return null;
+        };
 
-        case 'error':
+        if (
+          params &&
+          (options?.method === 'POST' || options?.method === 'PUT')
+        ) {
+          config.body = JSON.stringify(params);
+        }
+
+        const response = await fetch(endpoint, config);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const json: JSendResponse<T> = await response.json();
+
+        switch (json.status) {
+          case 'success':
+            setData(json.data);
+            return json.data;
+
+          case 'fail':
+            if (response.status === 404) {
+              setError({ type: 'not_found', resource: endpoint });
+            } else if (response.status === 401 || response.status === 403) {
+              setError({
+                type: 'unauthorized',
+                message: typeof json.data === 'string' ? json.data : '权限不足'
+              });
+            } else {
+              setError({
+                type: 'validation',
+                details:
+                  typeof json.data === 'object'
+                    ? json.data
+                    : { error: '验证失败' }
+              });
+            }
+            return null;
+
+          case 'error':
+            setError({
+              type: 'server',
+              message: json.message,
+              code: json.code
+            });
+            return null;
+
+          default:
+            throw new Error('无效的响应格式');
+        }
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return null; // 请求被取消，不设置错误
+        }
+
+        if (err instanceof TypeError && err.message.includes('fetch')) {
+          setError({ type: 'network', message: '网络连接失败' });
+        } else {
           setError({
-            type: 'server',
-            message: json.message,
-            code: json.code
+            type: 'network',
+            message: err instanceof Error ? err.message : '未知网络错误'
           });
-          return null;
-
-        default:
-          throw new Error('无效的响应格式');
+        }
+        return null;
+      } finally {
+        setLoading(false);
+        abortControllerRef.current = null;
       }
-    } catch (err) {
-      if (controller.signal.aborted) {
-        return null; // 请求被取消，不设置错误
-      }
-
-      if (err instanceof TypeError && err.message.includes('fetch')) {
-        setError({ type: 'network', message: '网络连接失败' });
-      } else {
-        setError({ 
-          type: 'network', 
-          message: err instanceof Error ? err.message : '未知网络错误' 
-        });
-      }
-      return null;
-    } finally {
-      setLoading(false);
-      abortControllerRef.current = null;
-    }
-  }, [endpoint, options?.method]);
+    },
+    [endpoint, options?.method]
+  );
 
   // 组件卸载时取消请求
   useEffect(() => {
@@ -172,7 +181,7 @@ export function useApiData<T, P = any>(
     error,
     execute,
     refetch: () => execute(),
-    setData, // 用于乐观更新
+    setData // 用于乐观更新
   };
 }
 ```
@@ -189,30 +198,38 @@ export function useVulnerabilities() {
     { immediate: true }
   );
 
-  const fetchVulnerabilities = useCallback(async (filters?: VulnFilters) => {
-    const queryParams = filters ? `?${new URLSearchParams(filters).toString()}` : '';
-    const vulnerabilities = await execute();
-    
-    if (vulnerabilities) {
-      store.setVulnerabilities(vulnerabilities);
-    }
-    
-    return vulnerabilities;
-  }, [execute, store]);
+  const fetchVulnerabilities = useCallback(
+    async (filters?: VulnFilters) => {
+      const queryParams = filters
+        ? `?${new URLSearchParams(filters).toString()}`
+        : '';
+      const vulnerabilities = await execute();
 
-  const createVulnerability = useCallback(async (data: CreateVulnDTO) => {
-    const { execute: createExecute } = useApiData<Vulnerability>(
-      '/api/vulnerabilities',
-      { method: 'POST' }
-    );
-    
-    const newVuln = await createExecute(data);
-    if (newVuln) {
-      store.addVulnerability(newVuln);
-    }
-    
-    return newVuln;
-  }, [store]);
+      if (vulnerabilities) {
+        store.setVulnerabilities(vulnerabilities);
+      }
+
+      return vulnerabilities;
+    },
+    [execute, store]
+  );
+
+  const createVulnerability = useCallback(
+    async (data: CreateVulnDTO) => {
+      const { execute: createExecute } = useApiData<Vulnerability>(
+        '/api/vulnerabilities',
+        { method: 'POST' }
+      );
+
+      const newVuln = await createExecute(data);
+      if (newVuln) {
+        store.addVulnerability(newVuln);
+      }
+
+      return newVuln;
+    },
+    [store]
+  );
 
   return {
     vulnerabilities: store.vulnerabilities,
@@ -220,7 +237,7 @@ export function useVulnerabilities() {
     error: error || store.error,
     fetchVulnerabilities,
     createVulnerability,
-    refetch: fetchVulnerabilities,
+    refetch: fetchVulnerabilities
   };
 }
 ```
@@ -239,7 +256,7 @@ export function usePaginatedData<T>(
   const endpoint = `${baseEndpoint}?${new URLSearchParams({
     page: params.page.toString(),
     limit: params.limit.toString(),
-    ...params.filters,
+    ...params.filters
   }).toString()}`;
 
   const { data, loading, error, execute } = useApiData<{
@@ -249,18 +266,21 @@ export function usePaginatedData<T>(
     totalPages: number;
   }>(endpoint);
 
-  const fetchPage = useCallback(async (pageParams?: Partial<PaginationParams>) => {
-    const newParams = { ...params, ...pageParams };
-    setParams(newParams);
-    
-    const result = await execute();
-    if (result) {
-      setAllData(result.items);
-      setTotal(result.total);
-    }
-    
-    return result;
-  }, [execute, params]);
+  const fetchPage = useCallback(
+    async (pageParams?: Partial<PaginationParams>) => {
+      const newParams = { ...params, ...pageParams };
+      setParams(newParams);
+
+      const result = await execute();
+      if (result) {
+        setAllData(result.items);
+        setTotal(result.total);
+      }
+
+      return result;
+    },
+    [execute, params]
+  );
 
   const nextPage = useCallback(() => {
     if (data && params.page < Math.ceil(total / params.limit)) {
@@ -286,7 +306,7 @@ export function usePaginatedData<T>(
     fetchPage,
     nextPage,
     prevPage,
-    refetch: () => fetchPage(),
+    refetch: () => fetchPage()
   };
 }
 ```
@@ -294,22 +314,28 @@ export function usePaginatedData<T>(
 ## 表单提交Hook
 
 ```typescript
-export function useFormSubmit<T, R = any>(endpoint: string, method: 'POST' | 'PUT' = 'POST') {
+export function useFormSubmit<T, R = any>(
+  endpoint: string,
+  method: 'POST' | 'PUT' = 'POST'
+) {
   const { loading, error, execute } = useApiData<R, T>(endpoint, { method });
   const [success, setSuccess] = useState(false);
 
-  const submit = useCallback(async (formData: T): Promise<R | null> => {
-    setSuccess(false);
-    const result = await execute(formData);
-    
-    if (result) {
-      setSuccess(true);
-      // 3秒后清除成功状态
-      setTimeout(() => setSuccess(false), 3000);
-    }
-    
-    return result;
-  }, [execute]);
+  const submit = useCallback(
+    async (formData: T): Promise<R | null> => {
+      setSuccess(false);
+      const result = await execute(formData);
+
+      if (result) {
+        setSuccess(true);
+        // 3秒后清除成功状态
+        setTimeout(() => setSuccess(false), 3000);
+      }
+
+      return result;
+    },
+    [execute]
+  );
 
   const reset = useCallback(() => {
     setSuccess(false);
@@ -320,7 +346,7 @@ export function useFormSubmit<T, R = any>(endpoint: string, method: 'POST' | 'PU
     loading,
     error,
     success,
-    reset,
+    reset
   };
 }
 ```
@@ -330,58 +356,61 @@ export function useFormSubmit<T, R = any>(endpoint: string, method: 'POST' | 'PU
 ```typescript
 export function useFileUpload(endpoint: string = '/api/upload') {
   const [progress, setProgress] = useState(0);
-  const { loading, error, execute } = useApiData<{ url: string; filename: string }>(
-    endpoint,
-    { method: 'POST' }
-  );
+  const { loading, error, execute } = useApiData<{
+    url: string;
+    filename: string;
+  }>(endpoint, { method: 'POST' });
 
-  const upload = useCallback(async (file: File): Promise<string | null> => {
-    const formData = new FormData();
-    formData.append('file', file);
+  const upload = useCallback(
+    async (file: File): Promise<string | null> => {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    try {
-      const xhr = new XMLHttpRequest();
-      
-      return new Promise((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            setProgress((e.loaded / e.total) * 100);
-          }
-        });
+      try {
+        const xhr = new XMLHttpRequest();
 
-        xhr.addEventListener('load', async () => {
-          if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            if (response.status === 'success') {
-              resolve(response.data.url);
-            } else {
-              reject(new Error(response.message || '上传失败'));
+        return new Promise((resolve, reject) => {
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              setProgress((e.loaded / e.total) * 100);
             }
-          } else {
-            reject(new Error('上传失败'));
-          }
-          setProgress(0);
-        });
+          });
 
-        xhr.addEventListener('error', () => {
-          reject(new Error('网络错误'));
-          setProgress(0);
-        });
+          xhr.addEventListener('load', async () => {
+            if (xhr.status === 200) {
+              const response = JSON.parse(xhr.responseText);
+              if (response.status === 'success') {
+                resolve(response.data.url);
+              } else {
+                reject(new Error(response.message || '上传失败'));
+              }
+            } else {
+              reject(new Error('上传失败'));
+            }
+            setProgress(0);
+          });
 
-        xhr.open('POST', endpoint);
-        xhr.send(formData);
-      });
-    } catch (err) {
-      setProgress(0);
-      throw err;
-    }
-  }, [endpoint]);
+          xhr.addEventListener('error', () => {
+            reject(new Error('网络错误'));
+            setProgress(0);
+          });
+
+          xhr.open('POST', endpoint);
+          xhr.send(formData);
+        });
+      } catch (err) {
+        setProgress(0);
+        throw err;
+      }
+    },
+    [endpoint]
+  );
 
   return {
     upload,
     loading,
     error,
-    progress,
+    progress
   };
 }
 ```
@@ -389,6 +418,7 @@ export function useFileUpload(endpoint: string = '/api/upload') {
 ## 使用示例
 
 ### 基础数据获取
+
 ```typescript
 // 组件中使用
 function VulnerabilityList() {
@@ -411,12 +441,13 @@ function VulnerabilityList() {
 ```
 
 ### 表单提交
+
 ```typescript
 function CreateVulnForm() {
   const { submit, loading, error, success } = useFormSubmit<CreateVulnDTO>(
     '/api/vulnerabilities'
   );
-  
+
   const { register, handleSubmit, reset } = useForm<CreateVulnDTO>();
 
   const onSubmit = async (data: CreateVulnDTO) => {
@@ -432,7 +463,7 @@ function CreateVulnForm() {
       <button type="submit" disabled={loading}>
         {loading ? '创建中...' : '创建漏洞'}
       </button>
-      
+
       {error && <ErrorMessage error={error} />}
       {success && <SuccessMessage message="漏洞创建成功" />}
     </form>
@@ -444,7 +475,7 @@ function CreateVulnForm() {
 
 ```typescript
 // 通用错误显示组件
-function ErrorDisplay({ error, onRetry }: { 
+function ErrorDisplay({ error, onRetry }: {
   error: ApiError;
   onRetry?: () => void;
 }) {
@@ -490,10 +521,10 @@ describe('useApiData', () => {
     const mockData = { id: 1, name: 'Test' };
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ status: 'success', data: mockData }),
+      json: async () => ({ status: 'success', data: mockData })
     });
 
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useApiData<typeof mockData>('/api/test')
     );
 
@@ -510,10 +541,10 @@ describe('useApiData', () => {
     global.fetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({ 
-        status: 'fail', 
-        data: { email: '邮箱格式不正确' } 
-      }),
+      json: async () => ({
+        status: 'fail',
+        data: { email: '邮箱格式不正确' }
+      })
     });
 
     const { result } = renderHook(() => useApiData('/api/test'));
@@ -539,6 +570,7 @@ describe('useApiData', () => {
 5. **类型定义必须完整**
 
 遵循这些模板可以确保：
+
 - 一致的错误处理体验
 - 避免内存泄漏
 - 提高代码可维护性

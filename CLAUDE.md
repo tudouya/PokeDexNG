@@ -235,7 +235,7 @@ NEXTAUTH_URL="http://localhost:3000"
 ### 数据获取规范
 
 - **必须使用** `/docs/templates/hooks.md` 中定义的标准Hook模板
-- **禁止** 直接在组件中调用fetch或自行实现数据获取逻辑  
+- **禁止** 直接在组件中调用fetch或自行实现数据获取逻辑
 - **所有API调用** 必须通过标准化Hook处理JSend响应格式
 - **错误处理** 必须使用统一的错误类型和显示组件
 
@@ -253,7 +253,7 @@ export function VulnerabilityList() {
 
   if (loading) return <Loading />;
   if (error) return <ErrorDisplay error={error} onRetry={refetch} />;
-  
+
   return <div>{/* 渲染数据 */}</div>;
 }
 
@@ -304,6 +304,7 @@ npm run typecheck && npm run lint:fix         # 代码检查
 ## 11. Quick Links（快速链接）
 
 ### 开发资源
+
 - **Hook模板**: `/docs/templates/hooks.md`
 - **技术决策**: `/docs/decisions/` - 重要架构和技术选择的决策记录
 - **技术债务**: `/docs/tech-debt.md` - 已知问题、临时方案、待重构项
