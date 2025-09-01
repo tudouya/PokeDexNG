@@ -34,17 +34,20 @@ Implementation follows established file organization conventions:
 ### Existing Components to Leverage
 
 - **UI Components**: Extensive shadcn/ui component library (Button, Input, Form, Dialog, etc.)
+
   - src/components/ui/form.tsx - React Hook Form integration patterns
   - src/components/ui/button.tsx - Consistent button styling
   - src/components/ui/input.tsx - Form input components
   - src/components/ui/dialog.tsx - Modal dialogs for user management
 
 - **Password Utilities**: Complete password management system at src/lib/auth/password.ts
+
   - hashPassword() and verifyPassword() functions
   - Password complexity validation
   - Secure password generation utilities
 
 - **Database Infrastructure**: Full RBAC schema implemented in Prisma
+
   - User, Role, Permission models with proper relationships
   - UserRole and RolePermission junction tables
   - AuditLog model for comprehensive logging
@@ -56,14 +59,17 @@ Implementation follows established file organization conventions:
 ### Integration Points
 
 - **Current Providers**: src/components/layout/providers.tsx
+
   - Replace ClerkProvider with NextAuth SessionProvider
   - Maintain theme integration and provider structure
 
 - **User Navigation**: src/components/layout/user-nav.tsx
+
   - Replace Clerk useUser() with NextAuth useSession()
   - Maintain dropdown menu structure and styling
 
 - **Middleware**: src/middleware.ts
+
   - Replace clerkMiddleware with NextAuth middleware
   - Preserve route protection patterns and configuration
 
@@ -81,16 +87,16 @@ graph TD
     B --> C[Auth Services]
     C --> D[RBAC Services]
     D --> E[Prisma Database]
-    
+
     F[API Routes] --> G[Auth Middleware]
     G --> H[Permission Services]
     H --> E
-    
+
     I[Login Form] --> J[NextAuth Credentials]
     J --> K[Password Verification]
     K --> L[User Services]
     L --> E
-    
+
     M[Admin Interface] --> N[User Management]
     N --> O[Role Assignment]
     O --> P[Audit Logging]
@@ -106,7 +112,7 @@ sequenceDiagram
     participant N as NextAuth
     participant A as Auth Service
     participant D as Database
-    
+
     U->>L: Submit credentials
     L->>N: signIn()
     N->>A: Verify credentials
@@ -125,7 +131,7 @@ sequenceDiagram
 
 - **Purpose**: Core authentication configuration and providers
 - **File**: src/lib/auth/auth.ts
-- **Interfaces**: 
+- **Interfaces**:
   - NextAuth configuration object
   - Credentials provider setup
   - JWT callback for role inclusion
@@ -136,13 +142,13 @@ sequenceDiagram
 ### Component 2: Authentication Services
 
 - **Purpose**: Business logic for user authentication and session management
-- **File**: src/lib/services/auth.service.ts  
+- **File**: src/lib/services/auth.service.ts
 - **Interfaces**:
   ```typescript
   interface AuthService {
-    validateCredentials(email: string, password: string): Promise<User | null>
-    updateLastLogin(userId: number): Promise<void>
-    logAuthEvent(event: AuthEvent): Promise<void>
+    validateCredentials(email: string, password: string): Promise<User | null>;
+    updateLastLogin(userId: number): Promise<void>;
+    logAuthEvent(event: AuthEvent): Promise<void>;
   }
   ```
 - **Dependencies**: Prisma client, password utilities, audit logging
@@ -155,9 +161,9 @@ sequenceDiagram
 - **Interfaces**:
   ```typescript
   interface PermissionService {
-    hasPermission(userId: number, permission: string): Promise<boolean>
-    getUserPermissions(userId: number): Promise<string[]>
-    hasRole(userId: number, role: string): Promise<boolean>
+    hasPermission(userId: number, permission: string): Promise<boolean>;
+    getUserPermissions(userId: number): Promise<string[]>;
+    hasRole(userId: number, role: string): Promise<boolean>;
   }
   ```
 - **Dependencies**: Prisma client, RBAC database models
@@ -170,10 +176,10 @@ sequenceDiagram
 - **Interfaces**:
   ```typescript
   interface UserService {
-    createUser(userData: CreateUserDTO): Promise<UserDTO>
-    updateUserRoles(userId: number, roleIds: number[]): Promise<void>
-    deactivateUser(userId: number): Promise<void>
-    resetPassword(userId: number): Promise<string>
+    createUser(userData: CreateUserDTO): Promise<UserDTO>;
+    updateUserRoles(userId: number, roleIds: number[]): Promise<void>;
+    deactivateUser(userId: number): Promise<void>;
+    resetPassword(userId: number): Promise<string>;
   }
   ```
 - **Dependencies**: Prisma client, password utilities, audit logging
@@ -202,34 +208,34 @@ sequenceDiagram
 ```typescript
 // Extends existing Prisma User model
 interface User {
-  id: number
-  email: string
-  username: string
-  passwordHash: string
-  fullName?: string
-  avatar?: string
-  isActive: boolean
-  lastLoginAt?: Date
-  createdAt: Date
-  updatedAt: Date
-  
+  id: number;
+  email: string;
+  username: string;
+  passwordHash: string;
+  fullName?: string;
+  avatar?: string;
+  isActive: boolean;
+  lastLoginAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+
   // Relations
-  userRoles: UserRole[]
-  auditLogs: AuditLog[]
+  userRoles: UserRole[];
+  auditLogs: AuditLog[];
 }
 
 // NextAuth Session Extension (Hybrid Strategy)
 interface Session {
   user: {
-    id: number
-    email: string
-    username: string
-    fullName?: string
-    avatar?: string
-    roles: string[]  // Store role names in JWT session
+    id: number;
+    email: string;
+    username: string;
+    fullName?: string;
+    avatar?: string;
+    roles: string[]; // Store role names in JWT session
     // Permissions queried from database when needed for security
-  }
-  expires: string
+  };
+  expires: string;
 }
 ```
 
@@ -237,27 +243,27 @@ interface Session {
 
 ```typescript
 interface LoginCredentials {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 interface CreateUserDTO {
-  email: string
-  username: string
-  fullName?: string
-  roleIds: number[]
+  email: string;
+  username: string;
+  fullName?: string;
+  roleIds: number[];
 }
 
 interface UserDTO {
-  id: number
-  email: string
-  username: string
-  fullName?: string
-  avatar?: string
-  isActive: boolean
-  roles: RoleDTO[]
-  lastLoginAt?: Date
-  createdAt: Date
+  id: number;
+  email: string;
+  username: string;
+  fullName?: string;
+  avatar?: string;
+  isActive: boolean;
+  roles: RoleDTO[];
+  lastLoginAt?: Date;
+  createdAt: Date;
 }
 ```
 
@@ -266,18 +272,22 @@ interface UserDTO {
 ### Error Scenarios
 
 1. **Authentication Failures**
+
    - **Handling**: Clear user feedback, rate limiting, audit logging
    - **User Impact**: Informative error messages, temporary lockout after 5 attempts
 
 2. **Database Connection Failures**
+
    - **Handling**: Graceful degradation, fail-secure approach, retry logic
    - **User Impact**: "Service temporarily unavailable" message, maintains security
 
 3. **Permission Denied**
+
    - **Handling**: Log unauthorized access attempts, clear error messaging
    - **User Impact**: "Access denied" message with contact information
 
 4. **JWT Token Issues**
+
    - **Handling**: Force re-authentication, secure token validation
    - **User Impact**: Automatic redirect to login, session restoration
 
@@ -318,31 +328,37 @@ interface UserDTO {
 ## Migration Strategy
 
 ### Phase 1: NextAuth Setup
+
 - Install NextAuth.js v5 and Prisma adapter
 - Configure authentication providers and JWT settings
 - Create authentication services and permission utilities
 
 ### Phase 2: Database Migration
+
 - Execute Prisma migrations for RBAC schema
 - Run seed data for initial roles and permissions
 - Create admin user account with system privileges
 
 ### Phase 3: Component Migration
+
 - Replace Clerk login form with NextAuth login component
 - Update user navigation and session handling
 - Implement permission-based component rendering
 
-### Phase 4: Middleware Migration  
+### Phase 4: Middleware Migration
+
 - Replace Clerk middleware with NextAuth protection
 - Update route protection patterns
 - Implement permission checking middleware
 
 ### Phase 5: User Management
+
 - Create admin interface for user management
 - Implement role assignment and user lifecycle features
 - Add comprehensive audit logging
 
 ### Phase 6: Validation and Cleanup
+
 - Comprehensive testing of all authentication flows
 - Remove all Clerk dependencies and configurations
 - Update documentation and deployment processes
@@ -350,7 +366,7 @@ interface UserDTO {
 ## Security Considerations
 
 - **Password Security**: bcryptjs with 12 salt rounds, complexity requirements
-- **Session Management**: 24-hour JWT expiration, secure cookie configuration  
+- **Session Management**: 24-hour JWT expiration, secure cookie configuration
 - **Rate Limiting**: 5 failed attempts triggers 30-minute lockout
 - **Audit Trail**: Complete logging of authentication and authorization events
 - **Input Validation**: Zod schemas for all user inputs and API requests

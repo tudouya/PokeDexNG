@@ -5,10 +5,10 @@
 
 import { PrismaClient } from '@prisma/client';
 import {
-  hashPassword,
   generateSecurePassword,
   validatePassword
 } from '../src/lib/auth/password';
+import { hashPassword } from '../src/lib/auth/session';
 
 const prisma = new PrismaClient();
 

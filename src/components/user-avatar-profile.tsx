@@ -4,9 +4,9 @@ interface UserAvatarProfileProps {
   className?: string;
   showInfo?: boolean;
   user: {
-    imageUrl?: string;
+    avatar?: string | null;
     fullName?: string | null;
-    emailAddresses: Array<{ emailAddress: string }>;
+    email: string;
   } | null;
 }
 
@@ -18,7 +18,7 @@ export function UserAvatarProfile({
   return (
     <div className='flex items-center gap-2'>
       <Avatar className={className}>
-        <AvatarImage src={user?.imageUrl || ''} alt={user?.fullName || ''} />
+        <AvatarImage src={user?.avatar || ''} alt={user?.fullName || ''} />
         <AvatarFallback className='rounded-lg'>
           {user?.fullName?.slice(0, 2)?.toUpperCase() || 'CN'}
         </AvatarFallback>
@@ -27,9 +27,7 @@ export function UserAvatarProfile({
       {showInfo && (
         <div className='grid flex-1 text-left text-sm leading-tight'>
           <span className='truncate font-semibold'>{user?.fullName || ''}</span>
-          <span className='truncate text-xs'>
-            {user?.emailAddresses[0].emailAddress || ''}
-          </span>
+          <span className='truncate text-xs'>{user?.email || ''}</span>
         </div>
       )}
     </div>

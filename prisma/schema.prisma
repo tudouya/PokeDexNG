@@ -12,16 +12,20 @@ datasource db {
 
 // 用户表
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  username     String    @unique
-  passwordHash String    @map("password_hash")
-  fullName     String?   @map("full_name")
-  avatar       String?
-  isActive     Boolean   @default(true) @map("is_active")
-  lastLoginAt  DateTime? @map("last_login_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String    @map("password_hash")
+  fullName        String?   @map("full_name")
+  avatar          String?
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at")
+  
+  // 预留字段 - 当前未使用，为将来可能的安全增强预留
+  failedAttempts  Int       @default(0) @map("failed_attempts") // 预留：登录失败次数跟踪
+  lockedUntil     DateTime? @map("locked_until")              // 预留：账户锁定截止时间
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   // 关联
   userRoles     UserRole[]

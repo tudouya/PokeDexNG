@@ -1,9 +1,16 @@
 'use client';
-import { ClerkProvider } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
-import { useTheme } from 'next-themes';
 import React from 'react';
+import { SWRConfig } from 'swr';
 import { ActiveThemeProvider } from '../active-theme';
+
+// SWR 全局配置
+const swrConfig = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  shouldRetryOnError: false,
+  errorRetryCount: 2,
+  dedupingInterval: 2000
+};
 
 export default function Providers({
   activeThemeValue,
@@ -12,20 +19,9 @@ export default function Providers({
   activeThemeValue: string;
   children: React.ReactNode;
 }) {
-  // we need the resolvedTheme value to set the baseTheme for clerk based on the dark or light theme
-  const { resolvedTheme } = useTheme();
-
   return (
-    <>
-      <ActiveThemeProvider initialTheme={activeThemeValue}>
-        <ClerkProvider
-          appearance={{
-            baseTheme: resolvedTheme === 'dark' ? dark : undefined
-          }}
-        >
-          {children}
-        </ClerkProvider>
-      </ActiveThemeProvider>
-    </>
+    <ActiveThemeProvider initialTheme={activeThemeValue}>
+      <SWRConfig value={swrConfig}>{children}</SWRConfig>
+    </ActiveThemeProvider>
   );
 }

@@ -32,41 +32,9 @@ export type PasswordValidationError =
   | 'missing_number'
   | 'missing_symbol';
 
-/**
- * 加密密码
- * @param plainPassword 明文密码
- * @returns Promise<string> 加密后的密码哈希
- */
-export async function hashPassword(plainPassword: string): Promise<string> {
-  try {
-    const salt = await bcrypt.genSalt(PASSWORD_CONFIG.saltRounds);
-    const hashedPassword = await bcrypt.hash(plainPassword, salt);
-    return hashedPassword;
-  } catch (error) {
-    throw new Error(
-      `密码加密失败: ${error instanceof Error ? error.message : '未知错误'}`
-    );
-  }
-}
+// hashPassword 函数已移到 session.ts 中，保持统一的密码处理
 
-/**
- * 验证密码
- * @param plainPassword 明文密码
- * @param hashedPassword 加密后的密码哈希
- * @returns Promise<boolean> 密码是否匹配
- */
-export async function verifyPassword(
-  plainPassword: string,
-  hashedPassword: string
-): Promise<boolean> {
-  try {
-    return await bcrypt.compare(plainPassword, hashedPassword);
-  } catch (error) {
-    throw new Error(
-      `密码验证失败: ${error instanceof Error ? error.message : '未知错误'}`
-    );
-  }
-}
+// verifyPassword 函数已用 session.ts 中的 comparePasswords 替代
 
 /**
  * 验证密码复杂度

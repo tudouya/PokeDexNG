@@ -15,7 +15,7 @@ export type Product = {
 export const navItems: NavItem[] = [
   {
     title: 'Dashboard',
-    url: '/dashboard/overview',
+    url: '/dashboard',
     icon: 'dashboard',
     isActive: false,
     shortcut: ['d', 'd'],
@@ -26,6 +26,14 @@ export const navItems: NavItem[] = [
     url: '/dashboard/product',
     icon: 'product',
     shortcut: ['p', 'p'],
+    isActive: false,
+    items: [] // No child items
+  },
+  {
+    title: 'Users',
+    url: '/dashboard/users',
+    icon: 'users',
+    shortcut: ['u', 'u'],
     isActive: false,
     items: [] // No child items
   },
