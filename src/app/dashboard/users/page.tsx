@@ -29,6 +29,7 @@ import { useUsers, type UserListItem } from '@/hooks/use-users';
 import { useDebounce } from '@/hooks/use-debounce';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import PageContainer from '@/components/layout/page-container';
 import {
   IconSearch,
   IconFilter,
@@ -310,176 +311,184 @@ export default function UsersPage() {
   }
 
   return (
-    <div className='container mx-auto space-y-6 py-6'>
-      {/* 页面标题 */}
-      <div className='flex items-center justify-between'>
-        <div>
-          <h1 className='text-3xl font-bold tracking-tight'>用户管理</h1>
-          <p className='text-muted-foreground'>
-            管理系统用户账户、角色权限和状态
-          </p>
-        </div>
-        <Button onClick={handleCreateUser}>
-          <IconUserPlus className='mr-2 h-4 w-4' />
-          创建用户
-        </Button>
-      </div>
-
-      {/* 搜索和筛选栏 */}
-      <div className='flex items-center gap-4'>
-        <div className='relative max-w-sm flex-1'>
-          <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
-          <Input
-            placeholder='搜索用户名、邮箱或姓名...'
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className='pl-10'
-          />
-        </div>
-
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className='w-32'>
-            <IconFilter className='mr-2 h-4 w-4' />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value='all'>全部状态</SelectItem>
-            <SelectItem value='active'>活跃用户</SelectItem>
-            <SelectItem value='inactive'>停用用户</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button variant='outline' onClick={handleRefresh} disabled={loading}>
-          <IconRefresh
-            className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
-          />
-          刷新
-        </Button>
-      </div>
-
-      {/* 用户统计 */}
-      {pagination && (
-        <div className='text-muted-foreground flex items-center gap-6 text-sm'>
-          <span>总计 {pagination.total} 个用户</span>
-          <span>
-            第 {pagination.page} 页，共 {pagination.totalPages} 页
-          </span>
-          <span>活跃用户：{users.filter((u) => u.isActive).length}</span>
-          <span>停用用户：{users.filter((u) => !u.isActive).length}</span>
-        </div>
-      )}
-
-      {/* 用户列表表格 */}
-      <div className='rounded-md border'>
-        <Table>
-          <TableHeader>
-            {table.table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <Button
-                        variant='ghost'
-                        onClick={() => header.column.toggleSorting()}
-                        className='h-auto p-0 font-semibold hover:bg-transparent'
-                      >
-                        {typeof header.column.columnDef.header === 'string'
-                          ? header.column.columnDef.header
-                          : typeof header.column.columnDef.header === 'function'
-                            ? header.column.columnDef.header(
-                                header.getContext()
-                              )
-                            : null}
-                      </Button>
-                    ) : typeof header.column.columnDef.header === 'string' ? (
-                      header.column.columnDef.header
-                    ) : typeof header.column.columnDef.header === 'function' ? (
-                      header.column.columnDef.header(header.getContext())
-                    ) : null}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              // 加载状态
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  {columns.map((_, colIndex) => (
-                    <TableCell key={colIndex}>
-                      <div className='bg-muted h-4 animate-pulse rounded' />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : table.table.getRowModel().rows?.length ? (
-              // 数据行
-              table.table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {cell.getValue() !== undefined &&
-                      cell.column.columnDef.cell
-                        ? typeof cell.column.columnDef.cell === 'function'
-                          ? cell.column.columnDef.cell(cell.getContext())
-                          : cell.column.columnDef.cell
-                        : (cell.getValue() as React.ReactNode)}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              // 空状态
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className='h-24 text-center'
-                >
-                  <div className='flex flex-col items-center gap-2'>
-                    <p>暂无用户数据</p>
-                    <Button variant='outline' size='sm' onClick={handleRefresh}>
-                      重新加载
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* 分页控制 */}
-      {pagination && pagination.totalPages > 1 && (
+    <PageContainer>
+      <div className='flex flex-1 flex-col space-y-6'>
+        {/* 页面标题 */}
         <div className='flex items-center justify-between'>
-          <div className='text-muted-foreground text-sm'>
-            显示 {(pagination.page - 1) * pagination.limit + 1} -{' '}
-            {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
-            条，共 {pagination.total} 条
+          <div>
+            <h1 className='text-3xl font-bold tracking-tight'>用户管理</h1>
+            <p className='text-muted-foreground'>
+              管理系统用户账户、角色权限和状态
+            </p>
           </div>
-          <div className='flex items-center space-x-2'>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => table.table.previousPage()}
-              disabled={!table.table.getCanPreviousPage()}
-            >
-              上一页
-            </Button>
-            <Button
-              variant='outline'
-              size='sm'
-              onClick={() => table.table.nextPage()}
-              disabled={!table.table.getCanNextPage()}
-            >
-              下一页
-            </Button>
-          </div>
+          <Button onClick={handleCreateUser}>
+            <IconUserPlus className='mr-2 h-4 w-4' />
+            创建用户
+          </Button>
         </div>
-      )}
-    </div>
+
+        {/* 搜索和筛选栏 */}
+        <div className='flex items-center gap-4'>
+          <div className='relative max-w-sm flex-1'>
+            <IconSearch className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform' />
+            <Input
+              placeholder='搜索用户名、邮箱或姓名...'
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className='pl-10'
+            />
+          </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className='min-w-[140px]'>
+              <IconFilter className='mr-2 h-4 w-4' />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>全部状态</SelectItem>
+              <SelectItem value='active'>活跃用户</SelectItem>
+              <SelectItem value='inactive'>停用用户</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button variant='outline' onClick={handleRefresh} disabled={loading}>
+            <IconRefresh
+              className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+            />
+            刷新
+          </Button>
+        </div>
+
+        {/* 用户统计 */}
+        {pagination && (
+          <div className='text-muted-foreground flex items-center gap-6 text-sm'>
+            <span>总计 {pagination.total} 个用户</span>
+            <span>
+              第 {pagination.page} 页，共 {pagination.totalPages} 页
+            </span>
+            <span>活跃用户：{users.filter((u) => u.isActive).length}</span>
+            <span>停用用户：{users.filter((u) => !u.isActive).length}</span>
+          </div>
+        )}
+
+        {/* 用户列表表格 */}
+        <div className='rounded-md border'>
+          <Table>
+            <TableHeader>
+              {table.table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <Button
+                          variant='ghost'
+                          onClick={() => header.column.toggleSorting()}
+                          className='h-auto p-0 font-semibold hover:bg-transparent'
+                        >
+                          {typeof header.column.columnDef.header === 'string'
+                            ? header.column.columnDef.header
+                            : typeof header.column.columnDef.header ===
+                                'function'
+                              ? header.column.columnDef.header(
+                                  header.getContext()
+                                )
+                              : null}
+                        </Button>
+                      ) : typeof header.column.columnDef.header === 'string' ? (
+                        header.column.columnDef.header
+                      ) : typeof header.column.columnDef.header ===
+                        'function' ? (
+                        header.column.columnDef.header(header.getContext())
+                      ) : null}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                // 加载状态
+                Array.from({ length: 5 }).map((_, index) => (
+                  <TableRow key={index}>
+                    {columns.map((_, colIndex) => (
+                      <TableCell key={colIndex}>
+                        <div className='bg-muted h-4 animate-pulse rounded' />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.table.getRowModel().rows?.length ? (
+                // 数据行
+                table.table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {cell.getValue() !== undefined &&
+                        cell.column.columnDef.cell
+                          ? typeof cell.column.columnDef.cell === 'function'
+                            ? cell.column.columnDef.cell(cell.getContext())
+                            : cell.column.columnDef.cell
+                          : (cell.getValue() as React.ReactNode)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                // 空状态
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className='h-24 text-center'
+                  >
+                    <div className='flex flex-col items-center gap-2'>
+                      <p>暂无用户数据</p>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={handleRefresh}
+                      >
+                        重新加载
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* 分页控制 */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className='flex items-center justify-between'>
+            <div className='text-muted-foreground text-sm'>
+              显示 {(pagination.page - 1) * pagination.limit + 1} -{' '}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
+              条，共 {pagination.total} 条
+            </div>
+            <div className='flex items-center space-x-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => table.table.previousPage()}
+                disabled={!table.table.getCanPreviousPage()}
+              >
+                上一页
+              </Button>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => table.table.nextPage()}
+                disabled={!table.table.getCanNextPage()}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </PageContainer>
   );
 }
