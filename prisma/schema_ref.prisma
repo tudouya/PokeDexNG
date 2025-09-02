@@ -1,0 +1,494 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                       String                       @id @default(uuid())
+  name                     String?
+  email                    String                       @unique
+  image                    String?
+  password                 String?
+  createdAt                DateTime                     @default(now()) @map("created_at")
+  emailVerified            DateTime?                    @map("email_verified")
+  updatedAt                DateTime                     @updatedAt @map("updated_at")
+  
+  // 关联关系
+  profile                  Profile?
+  userRoles                UserRole[]                   // 用户-角色多对多关系
+  projectMemberships       ProjectMember[]
+  assignedVulnerabilities  Vulnerability[]              @relation("AssignedToUser")
+  confirmedVulnerabilities Vulnerability[]              @relation("ConfirmedByUser")
+  foundVulnerabilities     Vulnerability[]              @relation("FoundByUser")
+  vulnerabilityComments    VulnerabilityComment[]
+  generatedReports         GeneratedReport[]
+  importTasks              ImportTask[]
+  permissionAuditLogs      PermissionAuditLog[]
+
+  @@map("users")
+}
+
+// 用户角色关联表 - 实现标准RBAC的用户-角色多对多关系
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  grantedAt DateTime @default(now()) @map("granted_at")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  // 关联关系
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  // 约束和索引
+  @@unique([userId, roleId], map: "unique_user_role")
+  @@index([userId, isActive], map: "idx_user_roles_user_active")
+  @@index([roleId, isActive], map: "idx_user_roles_role_active")
+  @@index([grantedAt], map: "idx_user_roles_granted_at")
+  @@index([userId, roleId, isActive], map: "idx_user_roles_user_role_active")
+  @@map("user_roles")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// 简化后的Profile模型 - 移除所有权限相关字段
+model Profile {
+  id                   String           @id @default(uuid())
+  fullName             String?          @map("full_name")
+  isActive             Boolean          @default(true) @map("is_active")
+  loginAttempts        Int              @default(0) @map("login_attempts")
+  lockedUntil          DateTime?        @map("locked_until")
+  lastLoginAt          DateTime?        @map("last_login_at")
+  lastLoginIp          String?          @map("last_login_ip")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  
+  user                 User             @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Project {
+  id              String          @id @default(uuid())
+  name            String          @db.VarChar(255)
+  description     String?         @db.Text
+  startDate       DateTime?       @map("start_date")
+  endDate         DateTime?       @map("end_date")
+  status          String          @default("active")
+  priority        String          @default("high") @db.VarChar(20)
+  isDeleted       Boolean         @default(false) @map("is_deleted")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  members         ProjectMember[]
+  targets         Target[]
+  vulnerabilities Vulnerability[]
+  generatedReports GeneratedReport[]
+  importTasks     ImportTask[]
+
+  @@map("projects")
+}
+
+// 简化后的ProjectMember模型 - 只保留基础成员关系
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  joinedAt  DateTime @default(now()) @map("joined_at") // 加入时间
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId], map: "project_members_user_id_fkey")
+  @@index([projectId], map: "idx_project_members_project") // 获取项目的所有成员
+  @@index([userId, projectId, isActive], map: "idx_project_members_user_project_active")
+  @@map("project_members")
+}
+
+model Target {
+  id              String          @id @default(uuid())
+  projectId       String          @map("project_id")
+  name            String          @db.VarChar(255)
+  url             String?         @db.VarChar(500)
+  description     String?         @db.Text
+  deploymentEnv   String?         @default("PROD") @map("deployment_env") @db.VarChar(50)
+  networkZone     String?         @default("INTERNET") @map("network_zone") @db.VarChar(50)
+  remark          String?         @db.Text
+  isActive        Boolean         @default(true) @map("is_active")
+  isDeleted       Boolean         @default(false) @map("is_deleted")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  vulnerabilities Vulnerability[]
+
+  @@index([projectId, isDeleted])
+  @@index([deploymentEnv], map: "idx_targets_deployment_env")
+  @@index([networkZone], map: "idx_targets_network_zone")
+  @@map("targets")
+}
+
+model VulnerabilityCategory {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  description String   @db.Text
+  parentId    String?  @map("parent_id")
+  level       Int      @default(0)
+  sort        Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  isLeaf      Boolean  @default(false) @map("is_leaf")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // 新增：三层分类体系字段
+  rootCause           String?   @map("root_cause") @db.VarChar(50)         // 5大根因分类
+  technicalCategory   String?   @map("technical_category") @db.VarChar(100) // 技术分类
+  
+  // 新增：标准映射字段
+  cweId               String?   @map("cwe_id") @db.VarChar(20)              // CWE标准
+  owaspCategory       String?   @map("owasp_category") @db.VarChar(50)      // OWASP分类
+  
+  // 新增：知识库字段
+  testingMethod       String?   @map("testing_method") @db.Text             // 测试方法
+  remediationTemplate String?   @map("remediation_template") @db.Text       // 修复建议模板
+  
+  // 新增：统计字段
+  usageCount          Int       @default(0) @map("usage_count")             // 使用次数
+  lastUsedAt          DateTime? @map("last_used_at")                        // 最后使用时间
+  
+  parent         VulnerabilityCategory?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       VulnerabilityCategory[]  @relation("CategoryHierarchy")
+  vulnerabilities Vulnerability[]
+
+  @@unique([name, parentId])
+  @@index([parentId], map: "vulnerability_categories_parent_id_fkey")
+  @@index([rootCause], map: "idx_vulnerability_categories_root_cause")
+  @@index([cweId], map: "idx_vulnerability_categories_cwe")
+  @@map("vulnerability_categories")
+}
+
+
+model Vulnerability {
+  id                String                       @id @default(uuid())
+  title             String                       @db.VarChar(500)
+  description       String                       @db.Text
+  severity          String                       @db.VarChar(20)
+  status            String                       @default("OPEN") @db.VarChar(50)
+  foundDate         DateTime                     @default(now()) @map("found_date")
+  dueDate           DateTime?                    @map("due_date")
+  reproductionSteps String?                      @map("reproduction_steps") @db.Text
+  impact            String?                      @db.Text
+  recommendation    String?                      @db.Text
+  references        String?                      @db.Text
+  cvssScore         Float?                       @map("cvss_score")
+  cvssVector        String?                      @map("cvss_vector") @db.VarChar(200)
+  tags              String?                      @db.Text
+  attachments       String?                      @db.Text
+  projectId         String                       @map("project_id")
+  targetId          String?                      @map("target_id")
+  foundBy           String                       @map("found_by")
+  assignedTo        String?                      @map("assigned_to")
+  confirmedBy       String?                      @map("confirmed_by")
+  confirmedAt       DateTime?                    @map("confirmed_at")
+  fixedAt           DateTime?                    @map("fixed_at")
+  createdAt         DateTime                     @default(now()) @map("created_at")
+  updatedAt         DateTime                     @updatedAt @map("updated_at")
+  isDeleted         Boolean                      @default(false) @map("is_deleted")
+  categoryId        String?                      @map("category_id")
+  affectedModule    String?                      @map("affected_module") @db.VarChar(500)
+  affectedParameter String?                      @map("affected_parameter") @db.VarChar(500)
+  affectedUrl       String?                      @map("affected_url") @db.VarChar(1000)
+  cveId             String?                      @map("cve_id") @db.VarChar(20)
+  cvssVersion       String?                      @default("3.1") @map("cvss_version") @db.VarChar(10)
+  businessImpact    String?                      @map("business_impact") @db.VarChar(20)
+  exploitDifficulty String?                      @map("exploit_difficulty") @db.VarChar(20)
+  cweId             String?                      @map("cwe_id") @db.VarChar(20)
+  cweSource         String?                      @default("inherited") @map("cwe_source") @db.VarChar(20) // inherited | override | scanner
+  proofOfConcept    String?                      @map("proof_of_concept") @db.Text
+  requestData       String?                      @map("request_data") @db.Text
+  responseData      String?                      @map("response_data") @db.Text
+  
+  // 导入相关字段
+  importTaskId      String?                      @map("import_task_id")
+  importedAt        DateTime?                    @map("imported_at")
+  sourceFile        String?                      @map("source_file") @db.VarChar(500)
+  parseMetadata     Json?                        @map("parse_metadata")
+  parseConfidence   Float?                       @map("parse_confidence")
+  parseWarnings     Json?                        @map("parse_warnings")
+  
+  assignedToUser    User?                        @relation("AssignedToUser", fields: [assignedTo], references: [id])
+  confirmedByUser   User?                        @relation("ConfirmedByUser", fields: [confirmedBy], references: [id])
+  foundByUser       User                         @relation("FoundByUser", fields: [foundBy], references: [id])
+  project           Project                      @relation(fields: [projectId], references: [id])
+  target            Target?                      @relation(fields: [targetId], references: [id])
+  category          VulnerabilityCategory?       @relation(fields: [categoryId], references: [id])
+  importTask        ImportTask?                  @relation("ImportedVulnerabilities", fields: [importTaskId], references: [id])
+  statusHistory     VulnerabilityStatusHistory[]
+  comments          VulnerabilityComment[]
+
+  @@index([assignedTo], map: "vulnerabilities_assigned_to_fkey")
+  @@index([confirmedBy], map: "vulnerabilities_confirmed_by_fkey")
+  @@index([foundBy], map: "vulnerabilities_found_by_fkey")
+  @@index([projectId], map: "vulnerabilities_project_id_fkey")
+  @@index([targetId], map: "vulnerabilities_target_id_fkey")
+  @@index([importTaskId], map: "vulnerabilities_import_task_id_fkey")
+  @@index([importedAt], map: "vulnerabilities_imported_at_idx")
+  @@index([sourceFile], map: "vulnerabilities_source_file_idx")
+  @@index([categoryId], map: "vulnerabilities_category_id_fkey")
+  @@map("vulnerabilities")
+}
+
+model VulnerabilityStatusHistory {
+  id              String        @id @default(uuid())
+  vulnerabilityId String        @map("vulnerability_id")
+  fromStatus      String?       @map("from_status") @db.VarChar(50)
+  toStatus        String        @map("to_status") @db.VarChar(50)
+  changedBy       String        @map("changed_by")
+  changeReason    String?       @map("change_reason") @db.Text
+  changedAt       DateTime      @default(now()) @map("changed_at")
+  
+  vulnerability   Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+
+  @@index([vulnerabilityId], map: "vulnerability_status_history_vulnerability_id_fkey")
+  @@map("vulnerability_status_history")
+}
+
+model VulnerabilityComment {
+  id              String        @id @default(uuid())
+  vulnerabilityId String        @map("vulnerability_id")
+  authorId        String        @map("author_id")
+  content         String        @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  isDeleted       Boolean       @default(false) @map("is_deleted")
+  
+  vulnerability   Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  author          User          @relation(fields: [authorId], references: [id])
+
+  @@index([vulnerabilityId])
+  @@index([createdAt])
+  @@index([authorId])
+  @@index([isDeleted])
+  @@map("vulnerability_comments")
+}
+
+model GeneratedReport {
+  id               String   @id @default(uuid())
+  projectId        String   @map("project_id")
+  title            String   @db.VarChar(500)
+  description      String?  @db.Text
+  templateName     String   @map("template_name") @db.VarChar(100)
+  format           String   @db.VarChar(10) // "PDF" | "HTML"
+  status           String   @default("generating") @db.VarChar(50) // "generating" | "completed" | "failed"
+  filePath         String?  @map("file_path") @db.VarChar(1000)
+  fileSize         Int?     @map("file_size") // bytes
+  configuration    Json     // 报告配置 JSON
+  generatedBy      String   @map("generated_by")
+  generatedAt      DateTime @default(now()) @map("generated_at")
+  completedAt      DateTime? @map("completed_at")
+  errorMessage     String?  @map("error_message") @db.Text
+  downloadCount    Int      @default(0) @map("download_count")
+  isDeleted        Boolean  @default(false) @map("is_deleted")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  generatedByUser  User     @relation(fields: [generatedBy], references: [id])
+
+  @@index([projectId])
+  @@index([generatedBy])
+  @@index([status])
+  @@index([generatedAt])
+  @@index([isDeleted])
+  // 复合索引优化常见查询
+  @@index([projectId, status, isDeleted], name: "idx_reports_project_status")
+  @@index([generatedBy, generatedAt], name: "idx_reports_user_date")
+  @@index([status, generatedAt], name: "idx_reports_status_date")
+  @@index([projectId, generatedAt], name: "idx_reports_project_date")
+  @@index([format, status], name: "idx_reports_format_status")
+  @@map("generated_reports")
+}
+
+enum ImportStatus {
+  PENDING     // 等待处理
+  UPLOADING   // 文件上传中
+  PARSING     // 解析中
+  PREVIEWING  // 等待用户确认
+  IMPORTING   // 导入中
+  COMPLETED   // 完成
+  FAILED      // 失败
+  CANCELLED   // 取消
+}
+
+model ImportTask {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  projectId   String   @map("project_id")
+  targetIds   Json     @map("target_ids") // JSON数组，关联的目标ID列表
+  fileName    String   @map("file_name") @db.VarChar(500)
+  fileSize    Int      @map("file_size")
+  fileType    String   @map("file_type") @db.VarChar(50)
+  filePath    String?  @map("file_path") @db.VarChar(1000) // 临时文件存储路径
+  status      ImportStatus @default(PENDING)
+  progress    Int      @default(0) @map("progress") // 0-100
+  totalItems  Int?     @map("total_items") // 总漏洞数量
+  processedItems Int?  @map("processed_items") // 已处理数量
+  successItems   Int?  @map("success_items") // 成功导入数量
+  failedItems    Int?  @map("failed_items") // 失败数量
+  parseResult    Json? @map("parse_result") // 解析结果JSON
+  errorLog       Json? @map("error_log") // 错误日志JSON
+  configuration  Json? @map("configuration") // 导入配置JSON
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at")
+
+  user     User    @relation(fields: [userId], references: [id])
+  project  Project @relation(fields: [projectId], references: [id])
+  vulnerabilities Vulnerability[] @relation("ImportedVulnerabilities")
+
+  // 索引优化
+  @@index([userId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status], name: "idx_import_tasks_user_status")
+  @@index([projectId, status], name: "idx_import_tasks_project_status")
+  @@index([status, createdAt], name: "idx_import_tasks_status_date")
+  @@map("import_tasks")
+}
+
+// RBAC权限控制相关模型 - 标准RBAC架构
+
+// 动态角色管理 - 添加is_visible字段
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // 角色名称，如 "admin", "tester"
+  displayName String   @map("display_name") // 显示名称，如 "系统管理员", "测试人员"
+  description String?  // 角色描述
+  level       Int      @default(1) // 角色层级，数字越大权限越高
+  isSystem    Boolean  @default(false) @map("is_system") // 是否为系统预定义角色
+  isActive    Boolean  @default(true) @map("is_active") // 是否启用
+  isVisible   Boolean  @default(true) @map("is_visible") // 是否在UI中显示（用于隐藏super_admin等角色）
+  
+  // 关联关系
+  userRoles       UserRole[]       // 用户-角色关联
+  rolePermissions RolePermission[] // 角色-权限关联
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([level])
+  @@index([isActive])
+  @@index([isVisible, isActive], map: "idx_roles_visible")
+  @@map("roles")
+}
+
+// 权限分类模型
+model PermissionCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique // 分类标识，如 "user_management", "project_management"
+  displayName String   // 显示名称，如 "用户管理", "项目管理"
+  description String?  // 分类描述
+  icon        String?  // 图标名称或路径
+  sortOrder   Int      @default(999) @map("sort_order") // 排序
+  isActive    Boolean  @default(true) @map("is_active") // 是否启用
+  
+  permissions Permission[] @relation("CategoryPermissions")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([sortOrder])
+  @@index([isActive])
+  @@map("permission_categories")
+}
+
+// 扩展权限模型支持动态管理
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // 权限名称，如 "user:create"
+  displayName String   // 显示名称，如 "创建用户"
+  resource    String   // 资源名称，如 "user", "project", "vulnerability"
+  action      String   // 操作名称，如 "create", "read", "update", "delete"
+  description String?  // 权限描述
+  
+  // 权限分类
+  categoryId  String?  @map("category_id")
+  category    PermissionCategory? @relation("CategoryPermissions", fields: [categoryId], references: [id])
+  
+  // 权限状态
+  isActive    Boolean  @default(true) @map("is_active") // 是否启用
+  sortOrder   Int      @default(999) @map("sort_order") // 在分类中的排序
+  
+  // 关联权限 - 标准RBAC: 只通过角色关联
+  rolePermissions RolePermission[] @relation("RolePermissions")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([name], map: "idx_permissions_name") // 加速权限名称查询
+  @@index([resource, action])
+  @@index([categoryId])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("permissions")
+}
+
+// 标准RBAC: 角色权限关联表
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  
+  // 关联
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation("RolePermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@index([roleId, permissionId], map: "idx_role_permissions_role_permission") // 覆盖索引，避免回表
+  @@map("role_permissions")
+}
+
+// 权限审计日志
+model PermissionAuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  resource   String   // 访问的资源
+  action     String   // 执行的操作
+  result     String   // SUCCESS, DENIED, ERROR
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent") @db.Text
+  metadata   Json?    // 额外的上下文信息
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@index([userId, createdAt])
+  @@index([resource, action])
+  @@index([result, createdAt])
+  @@index([userId, resource, action])
+  @@map("permission_audit_logs")
+}

@@ -6,6 +6,13 @@
 
 **Problem Statement**: Penetration testers spend excessive time on manual report generation and lack efficient tools for vulnerability lifecycle management, knowledge sharing, and collaborative security testing workflows.
 
+**Platform Positioning**: 
+This is a vulnerability information management platform focused on:
+- Recording and organizing penetration testing discoveries
+- Secure storage of POCs and sensitive information  
+- Collaboration and knowledge sharing
+- Automated report generation
+
 ## Target Users
 
 ### Primary Users
@@ -30,12 +37,12 @@
 
 ## Key Features
 
-### Project Management
+### Target Management
 
-- Penetration testing project lifecycle management
-- Project timeline and milestone tracking
-- Resource allocation and team coordination
-- Client communication and deliverable management
+- Testing target asset information management (websites, servers, APIs, etc.)
+- Target system discovery and inventory
+- Technology stack identification and documentation
+- Target scope definition and boundary management
 
 ### Vulnerability Recording
 
@@ -45,12 +52,17 @@
 - CVSS scoring and risk assessment
 - Screenshot and evidence attachment
 
-### Knowledge Management
+### Vulnerability Classification
 
-- Reusable vulnerability knowledge base
-- Template library for common vulnerability types
-- Best practices and methodology documentation
-- Learning resources and reference materials
+- OWASP-based vulnerability categorization system
+- Severity assessment and CVSS scoring
+- Vulnerability status tracking (open, fixed, accepted, false_positive)
+- Risk assessment and impact analysis
+
+### Long-term Goals
+
+- **Vulnerability Templates**: Common vulnerability quick-entry templates
+- **Knowledge Base**: Building reusable enterprise vulnerability knowledge base
 
 ### Report Generation
 
@@ -72,9 +84,13 @@
 ### What We Are NOT
 
 - **Vulnerability Scanner**: No automated vulnerability discovery
-- **Attack Platform**: No exploitation execution environment
-- **General Project Management**: Specialized for security testing only
-- **Compliance Tool**: Focus on penetration testing, not compliance auditing
+- **Attack Platform**: No exploitation execution environment  
+- **Project Management Tool**: Focus on targets and vulnerabilities, not project workflows
+
+**Clear Boundaries**:
+- Not a scanning tool - does not execute automated vulnerability scanning
+- Not an attack platform - does not provide vulnerability exploitation environment
+- Not a project management tool - specialized for target and vulnerability management
 
 ## Success Metrics
 

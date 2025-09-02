@@ -17,11 +17,11 @@
 
 ### Authentication & Authorization
 
-- **Current**: Clerk (implemented for rapid development)
-- **Planned**: NextAuth.js v5 for more control and customization
-- **Password Hashing**: bcryptjs for secure password storage
-- **RBAC**: Custom role-based access control system
-- **Session Management**: JWT tokens with secure configuration
+- **Current**: Simplified authentication system (migrated from complex RBAC)
+- **Implementation**: NextAuth.js v5 + bcryptjs for password hashing  
+- **Session Management**: JWT tokens with secure cookie storage
+- **Authorization**: Simple ownership-based data access control
+- **Migration Note**: Simplified from over-engineered RBAC system (7000+ lines removed) following YAGNI principle
 
 ### Frontend Stack
 
@@ -95,8 +95,8 @@
 ### Framework Selection Rationale
 
 - **Next.js 15**: Full-stack capability, excellent DX, strong ecosystem
-- **TypeScript**: Essential for large-scale application reliability
-- **Clerk → NextAuth.js**: Migration planned for better customization control
+- **TypeScript**: Essential for large-scale application reliability  
+- **Simplified Authentication**: Migrated from complex RBAC to basic ownership model (following YAGNI)
 - **Tailwind CSS**: Rapid UI development with design system consistency
 - **Prisma**: Type safety and excellent migration handling
 
@@ -196,7 +196,7 @@ NEXT_PUBLIC_SENTRY_DISABLED="true" # for development
 
 ### Planned Migrations
 
-1. **Clerk → NextAuth.js v5**: For better customization and control
+1. **Complex RBAC → Simple Ownership**: Removed 7000+ lines of over-engineered permission system
 2. **REST → GraphQL**: If complex query requirements emerge
 3. **Monolith → Microservices**: If scaling demands require it
 
@@ -205,3 +205,19 @@ NEXT_PUBLIC_SENTRY_DISABLED="true" # for development
 - Document all temporary solutions in `/docs/tech-debt.md`
 - Regular refactoring sprints to address accumulated debt
 - Architecture reviews before major feature additions
+
+## Key Development Commands
+
+```bash
+# Initial setup
+cp env.example.txt .env.local && npm install
+
+# Development
+npm run dev                                   # Start development server
+npx prisma migrate dev                        # Database migrations
+npx prisma studio                             # Database management UI
+
+# Code quality
+npm run typecheck && npm run lint:fix         # Type checking and linting
+npm test                                      # Run tests
+```

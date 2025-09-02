@@ -40,7 +40,7 @@ project_root/
 
 ```
 features/
-└── [feature-name]/            # Example: vulnerability-management
+└── [feature-name]/            # Example: target-management, vulnerability-management
     ├── __tests__/             # Feature-specific tests
     │   ├── services/          # Business logic unit tests
     │   └── components/        # Component tests
@@ -92,30 +92,32 @@ features/
 
 ### Database and Data Layer
 
-- **Prisma Models**: PascalCase (e.g., `User`, `Vulnerability`, `Project`)
-- **Database Tables**: snake_case (e.g., `users`, `vulnerabilities`, `project_members`)
-- **TypeScript Types/Interfaces**: PascalCase (e.g., `UserDTO`, `CreateVulnRequest`)
-- **API Endpoints**: kebab-case (e.g., `/api/vulnerabilities`, `/api/user-profile`)
+- **Prisma Models**: PascalCase (e.g., `User`, `Target`, `Vulnerability`)
+- **Database Tables**: snake_case (e.g., `users`, `targets`, `vulnerabilities`)
+- **TypeScript Types/Interfaces**: PascalCase (e.g., `UserDTO`, `TargetDTO`, `CreateVulnRequest`)
+- **API Endpoints**: kebab-case (e.g., `/api/targets`, `/api/vulnerabilities`, `/api/user-profile`)
 
 ## Module Organization Principles
 
 ### Shared vs. Feature-Specific
 
-1. **Shared First**: Place reusable logic in top-level directories
+1. **Shared First**: Prioritize placing reusable logic (Services, Components, Hooks) in top-level directories
 
    - `lib/` for utilities, services, and configurations
    - `components/` for UI components used across features
    - `hooks/` for React hooks used in multiple places
 
-2. **Feature-Specific Second**: Use `features/` only for tightly coupled code
+2. **Feature-Specific Second**: Use `features/` only when code is tightly coupled to specific business functionality and not reusable
 
    - Business logic specific to one domain
    - Components that won't be reused elsewhere
    - Feature-specific types and validations
 
-3. **Test Co-location**: Keep tests close to the code they test
+3. **Test Co-location**: Keep tests close to the code they test for easier maintenance and understanding
    - Feature tests in `features/[feature]/__tests__/`
    - Shared component tests in `components/__tests__/`
+
+4. **Unified Exports**: Each feature module must have `index.ts` file for unified public interface export
 
 ### Import and Export Strategy
 
@@ -123,6 +125,7 @@ features/
 
   ```typescript
   // ✅ Correct
+  import { TargetForm } from '@/features/target-management/components';
   import { VulnerabilityForm } from '@/features/vulnerability-management/components';
   import { formatDate } from '@/lib/utils';
 
@@ -132,6 +135,11 @@ features/
 
 - **Index File Exports**: Each feature module must have unified exports
   ```typescript
+  // features/target-management/index.ts
+  export { TargetForm, TargetList } from './components';
+  export { useTargets } from './hooks';
+  export { targetService } from './services';
+  
   // features/vulnerability-management/index.ts
   export { VulnerabilityForm, VulnerabilityList } from './components';
   export { useVulnerabilities } from './hooks';
@@ -150,7 +158,7 @@ features/
   │   ├── sign-in/
   │   └── sign-up/
   └── (dashboard)/
-      ├── projects/
+      ├── targets/
       └── vulnerabilities/
   ```
 
@@ -158,8 +166,8 @@ features/
 
   ```
   app/
-  └── projects/
-      └── [projectId]/
+  └── targets/
+      └── [targetId]/
           ├── page.tsx
           └── vulnerabilities/
               └── [vulnId]/
@@ -171,7 +179,7 @@ features/
   app/
   └── dashboard/
       ├── @analytics/
-      ├── @projects/
+      ├── @targets/
       └── layout.tsx
   ```
 
@@ -294,6 +302,11 @@ describe('VulnerabilityForm', () => {
   });
 });
 ```
+
+## Core Programming Principles
+
+1. **DRY (Don't Repeat Yourself)**: Avoid duplication. Any knowledge (code, logic, configuration) should have a single, clear, authoritative representation in the system. Prioritize reuse over copy-paste.
+2. **YAGNI (You Aren't Gonna Need It)**: Keep it simple. Only implement functionality truly needed for the current stage, avoiding over-design and premature abstraction for possible future requirements.
 
 ## Decision Framework
 
