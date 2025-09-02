@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth, usePermissions } from '@/hooks/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
   Card,
@@ -14,9 +14,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProfileViewPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const { permissions, isLoading: permissionsLoading } = usePermissions();
 
-  if (isLoading || permissionsLoading) {
+  if (isLoading) {
     return (
       <div className='flex w-full flex-col p-4'>
         <Card className='max-w-2xl'>
@@ -143,20 +142,6 @@ export default function ProfileViewPage() {
               </div>
             </div>
           </div>
-
-          {/* Permissions Section */}
-          {permissions && permissions.length > 0 && (
-            <div className='space-y-4'>
-              <h3 className='text-lg font-semibold'>用户权限</h3>
-              <div className='flex max-h-32 flex-wrap gap-2 overflow-y-auto'>
-                {permissions.map((permission: string) => (
-                  <Badge key={permission} variant='outline' className='text-xs'>
-                    {permission}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

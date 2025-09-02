@@ -12,14 +12,6 @@ import { prisma } from '@/lib/db';
 import { comparePasswords, setSession, clearSession } from '@/lib/auth/session';
 
 /**
- * 审计上下文类型
- */
-interface AuditContext {
-  ipAddress?: string;
-  userAgent?: string;
-}
-
-/**
  * 用户登录结果
  */
 interface LoginResult {
@@ -38,15 +30,10 @@ export class AuthService {
    * 用户登录
    * @param username 用户名或邮箱
    * @param password 密码
-   * @param context 审计上下文（IP地址、User-Agent等）
    * @returns 登录成功的用户信息
    * @throws 登录失败时抛出错误
    */
-  async login(
-    username: string,
-    password: string,
-    context: AuditContext = {}
-  ): Promise<LoginResult> {
+  async login(username: string, password: string): Promise<LoginResult> {
     // 1. 查找用户（支持用户名或邮箱登录）
     const user = await prisma.user.findFirst({
       where: {
@@ -57,70 +44,21 @@ export class AuthService {
 
     // 2. 处理用户不存在的情况
     if (!user) {
-      // 记录失败登录尝试（无用户ID）
-      await prisma.auditLog.create({
-        data: {
-          action: 'login_failed',
-          resourceType: 'auth',
-          changes: {
-            reason: 'user_not_found',
-            username: username,
-            ipAddress: context.ipAddress || 'unknown',
-            userAgent: context.userAgent || 'unknown',
-            timestamp: new Date().toISOString()
-          }
-        }
-      });
-
       throw new Error('用户名或密码错误');
     }
 
     // 3. 验证密码
     const isPasswordValid = await comparePasswords(password, user.passwordHash);
     if (!isPasswordValid) {
-      // 记录密码验证失败
-      await prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'login_failed',
-          resourceType: 'auth',
-          changes: {
-            reason: 'invalid_password',
-            username: username,
-            ipAddress: context.ipAddress || 'unknown',
-            userAgent: context.userAgent || 'unknown',
-            timestamp: new Date().toISOString()
-          }
-        }
-      });
-
       throw new Error('用户名或密码错误');
     }
 
     // 4. 登录成功处理
-    await Promise.all([
-      // 更新最后登录时间
-      prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() }
-      }),
-
-      // 记录成功登录审计日志
-      prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: 'login_success',
-          resourceType: 'auth',
-          changes: {
-            loginMethod: 'credentials',
-            username: username,
-            ipAddress: context.ipAddress || 'unknown',
-            userAgent: context.userAgent || 'unknown',
-            timestamp: new Date().toISOString()
-          }
-        }
-      })
-    ]);
+    // 更新最后登录时间
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() }
+    });
 
     // 5. 创建会话
     await setSession({ id: user.id });
@@ -137,26 +75,10 @@ export class AuthService {
 
   /**
    * 用户登出
-   * @param userId 用户ID
-   * @param context 审计上下文
    */
-  async logout(userId: number, context: AuditContext = {}): Promise<void> {
+  async logout(): Promise<void> {
     // 清除会话
     await clearSession();
-
-    // 记录登出审计日志
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action: 'logout',
-        resourceType: 'auth',
-        changes: {
-          ipAddress: context.ipAddress || 'unknown',
-          userAgent: context.userAgent || 'unknown',
-          timestamp: new Date().toISOString()
-        }
-      }
-    });
   }
 
   /**

@@ -1,6 +1,6 @@
 /**
  * 共享服务工具函数
- * 为认证服务提供通用错误处理、审计日志、验证和响应格式化功能
+ * 为认证服务提供通用错误处理、验证和响应格式化功能
  *
  * 遵循 DRY 原则，使用组合而非继承的架构模式
  */
@@ -9,7 +9,6 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { getCurrentUserId } from '@/lib/auth/session';
-import { checkPermission as checkUserPermission } from '@/lib/auth/permissions';
 
 // ================================
 // 类型定义 - JSend 响应格式
@@ -54,20 +53,6 @@ export type ApiError =
   | { type: 'forbidden'; message: string }
   | { type: 'conflict'; message: string; details?: any }
   | { type: 'rate_limit'; message: string; retryAfter?: number };
-
-/**
- * 审计日志上下文信息
- */
-export interface AuditContext {
-  userId?: number;
-  action: string;
-  resourceType: string;
-  resourceId?: number;
-  changes?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  metadata?: Record<string, any>;
-}
 
 // ================================
 // 响应格式化工具函数
@@ -238,83 +223,6 @@ export class ConflictError extends Error {
 }
 
 // ================================
-// 审计日志工具函数
-// ================================
-
-/**
- * 记录审计日志
- * 用于跟踪所有敏感操作和安全事件
- */
-export async function createAuditLog(context: AuditContext): Promise<void> {
-  try {
-    await prisma.auditLog.create({
-      data: {
-        userId: context.userId,
-        action: context.action,
-        resourceType: context.resourceType,
-        resourceId: context.resourceId,
-        changes: context.changes || undefined,
-        ipAddress: context.ipAddress,
-        userAgent: context.userAgent
-      }
-    });
-  } catch (error) {
-    // 审计日志失败不应该影响主要业务逻辑
-    // 但需要记录到系统日志
-    console.error('Failed to create audit log:', error, context);
-  }
-}
-
-/**
- * 从请求中提取审计上下文信息
- */
-export async function extractAuditContext(
-  request: Request,
-  action: string,
-  resourceType: string,
-  resourceId?: number,
-  changes?: Record<string, any>
-): Promise<AuditContext> {
-  const userId = await getCurrentUserId();
-
-  // 从请求头中提取客户端信息
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const ipAddress = forwarded?.split(',')[0] || realIp || 'unknown';
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-
-  return {
-    userId: userId || undefined,
-    action,
-    resourceType,
-    resourceId,
-    changes,
-    ipAddress,
-    userAgent
-  };
-}
-
-/**
- * 便捷的审计日志记录函数
- */
-export async function auditLog(
-  request: Request,
-  action: string,
-  resourceType: string,
-  resourceId?: number,
-  changes?: Record<string, any>
-): Promise<void> {
-  const context = await extractAuditContext(
-    request,
-    action,
-    resourceType,
-    resourceId,
-    changes
-  );
-  await createAuditLog(context);
-}
-
-// ================================
 // 验证工具函数
 // ================================
 
@@ -388,66 +296,6 @@ export async function withTransaction<T>(
 }
 
 // ================================
-// 权限检查工具函数
-// ================================
-
-/**
- * 检查用户是否具有指定权限
- */
-export async function checkPermission(
-  userId: number,
-  permission: string
-): Promise<boolean> {
-  try {
-    const userPermissions = await prisma.user.findUnique({
-      where: { id: userId, isActive: true },
-      include: {
-        userRoles: {
-          include: {
-            role: {
-              include: {
-                permissions: {
-                  include: {
-                    permission: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-
-    if (!userPermissions) {
-      return false;
-    }
-
-    // 检查是否有匹配的权限
-    return userPermissions.userRoles.some((userRole) =>
-      userRole.role.permissions.some(
-        (rolePermission) => rolePermission.permission.name === permission
-      )
-    );
-  } catch (error) {
-    console.error('Permission check failed:', error);
-    return false;
-  }
-}
-
-/**
- * 要求用户具有指定权限，否则抛出授权错误
- */
-export async function requirePermission(
-  userId: number,
-  permission: string
-): Promise<void> {
-  const hasPermission = await checkPermission(userId, permission);
-  if (!hasPermission) {
-    throw new AuthorizationError(`需要权限: ${permission}`);
-  }
-}
-
-// ================================
 // 请求认证工具函数
 // ================================
 
@@ -476,15 +324,6 @@ export async function requireAuth() {
     throw new AuthenticationError('用户不存在或已被禁用');
   }
 
-  return user;
-}
-
-/**
- * 获取当前认证用户并检查权限
- */
-export async function requireAuthWithPermission(permission: string) {
-  const user = await requireAuth();
-  await requirePermission(user.id, permission);
   return user;
 }
 
@@ -527,31 +366,6 @@ export function withAuthApiHandler<
 ) {
   return withApiHandler(async (request: Request, context: T) => {
     const user = await requireAuth();
-    return await handler(request, user, context);
-  });
-}
-
-/**
- * 需要特定权限的 API 路由包装器
- */
-export function withPermissionApiHandler<
-  T extends Record<string, unknown> = Record<string, unknown>
->(
-  permission: string,
-  handler: (
-    request: Request,
-    user: {
-      id: number;
-      username: string;
-      email: string;
-      fullName?: string | null;
-      isActive: boolean;
-    },
-    context: T
-  ) => Promise<Response>
-) {
-  return withApiHandler(async (request: Request, context: T) => {
-    const user = await requireAuthWithPermission(permission);
     return await handler(request, user, context);
   });
 }

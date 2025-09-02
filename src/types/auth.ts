@@ -1,6 +1,6 @@
 /**
  * Authentication Type Definitions
- * 认证系统类型定义 - 为RBAC权限控制系统提供类型安全
+ * 简化认证系统类型定义 - 仅包含基本认证功能
  */
 
 // ============================================================================
@@ -42,7 +42,6 @@ export interface UserDTO {
   lastLoginAt?: string; // ISO 8601 string
   createdAt: string; // ISO 8601 string
   updatedAt: string; // ISO 8601 string
-  roles: string[]; // 角色名称数组
 }
 
 /**
@@ -63,164 +62,26 @@ export interface ChangePasswordDTO {
 }
 
 // ============================================================================
-// NextAuth Session Extensions
+// Session Types
 // ============================================================================
 
 /**
- * 扩展的用户会话信息
- * 集成RBAC权限数据到NextAuth会话中
+ * 简化的用户会话信息
  */
-export interface ExtendedUser {
+export interface SessionUser {
   id: number;
   email: string;
   username: string;
   fullName?: string;
   avatar?: string;
-  roles: string[];
-  permissions: string[];
 }
 
 /**
- * NextAuth会话扩展类型
- * 包含完整的RBAC权限信息
+ * 认证会话类型
  */
 export interface AuthSession {
-  user: ExtendedUser;
+  user: SessionUser;
   expires: string;
-}
-
-/**
- * NextAuth JWT Token扩展
- * 存储在JWT中的用户信息
- */
-export interface AuthToken {
-  id: number;
-  email: string;
-  username: string;
-  name?: string;
-  picture?: string;
-  roles: string[];
-  permissions?: string[];
-  iat: number;
-  exp: number;
-}
-
-// ============================================================================
-// Role and Permission Types
-// ============================================================================
-
-/**
- * 权限信息DTO
- */
-export interface PermissionDTO {
-  id: number;
-  name: string; // 格式: resource.action (如: project.create)
-  displayName: string;
-  description?: string;
-  category: string; // project, vulnerability, report, user, system
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * 角色信息DTO
- */
-export interface RoleDTO {
-  id: number;
-  name: string;
-  displayName: string;
-  description?: string;
-  isSystem: boolean;
-  createdAt: string;
-  updatedAt: string;
-  permissions: PermissionDTO[];
-}
-
-/**
- * 用户-角色关联信息DTO
- */
-export interface UserRoleDTO {
-  id: number;
-  userId: number;
-  roleId: number;
-  assignedBy?: number;
-  assignedByUsername?: string;
-  createdAt: string;
-  updatedAt: string;
-  role: RoleDTO;
-}
-
-/**
- * 角色分配请求DTO
- */
-export interface AssignRoleDTO {
-  userId: number;
-  roleId: number;
-}
-
-/**
- * 权限检查结果
- */
-export interface PermissionCheck {
-  hasPermission: boolean;
-  requiredPermission: string;
-  userPermissions: string[];
-}
-
-// ============================================================================
-// Audit and Security Types
-// ============================================================================
-
-/**
- * 认证事件类型
- * 用于审计日志记录
- */
-export type AuthEventType =
-  | 'login'
-  | 'logout'
-  | 'login_failed'
-  | 'password_changed'
-  | 'user_created'
-  | 'user_updated'
-  | 'user_deactivated'
-  | 'role_assigned'
-  | 'role_removed';
-
-/**
- * 审计日志DTO
- */
-export interface AuditLogDTO {
-  id: number;
-  userId?: number;
-  username?: string;
-  action: string;
-  resourceType: string;
-  resourceId?: number;
-  changes?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt: string;
-}
-
-/**
- * 认证事件数据
- * 用于记录认证相关的审计日志
- */
-export interface AuthEvent {
-  userId?: number;
-  action: AuthEventType;
-  resourceType: 'auth' | 'user' | 'role';
-  resourceId?: number;
-  changes?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  metadata?: {
-    provider?: string;
-    isNewUser?: boolean;
-    failureReason?: string;
-    previousRoles?: string[];
-    newRoles?: string[];
-  };
 }
 
 // ============================================================================
@@ -283,7 +144,7 @@ export enum AuthStatus {
  */
 export interface AuthState {
   status: AuthStatus;
-  user: ExtendedUser | null;
+  user: SessionUser | null;
   error: string | null;
   isLoading: boolean;
 }
@@ -298,95 +159,6 @@ export interface LoginFormState {
 }
 
 // ============================================================================
-// Permission Utilities Types
-// ============================================================================
-
-/**
- * 权限资源类型
- */
-export type ResourceType =
-  | 'project'
-  | 'vulnerability'
-  | 'report'
-  | 'user'
-  | 'system';
-
-/**
- * 权限操作类型
- */
-export type ActionType =
-  | 'create'
-  | 'read'
-  | 'update'
-  | 'delete'
-  | 'manage'
-  | 'assign';
-
-/**
- * 权限字符串构建器
- */
-export type Permission = `${ResourceType}.${ActionType}`;
-
-/**
- * 预定义的系统权限
- */
-export const PERMISSIONS = {
-  // 项目管理权限
-  PROJECT: {
-    CREATE: 'project.create',
-    READ: 'project.read',
-    UPDATE: 'project.update',
-    DELETE: 'project.delete',
-    MANAGE: 'project.manage'
-  },
-  // 漏洞管理权限
-  VULNERABILITY: {
-    CREATE: 'vulnerability.create',
-    READ: 'vulnerability.read',
-    UPDATE: 'vulnerability.update',
-    DELETE: 'vulnerability.delete',
-    MANAGE: 'vulnerability.manage'
-  },
-  // 报告管理权限
-  REPORT: {
-    CREATE: 'report.create',
-    READ: 'report.read',
-    UPDATE: 'report.update',
-    DELETE: 'report.delete',
-    MANAGE: 'report.manage'
-  },
-  // 用户管理权限
-  USER: {
-    CREATE: 'user.create',
-    READ: 'user.read',
-    UPDATE: 'user.update',
-    DELETE: 'user.delete',
-    MANAGE: 'user.manage',
-    ASSIGN: 'user.assign'
-  },
-  // 系统管理权限
-  SYSTEM: {
-    MANAGE: 'system.manage',
-    READ: 'system.read'
-  }
-} as const;
-
-/**
- * 角色名称常量
- */
-export const ROLES = {
-  ADMIN: 'admin',
-  MANAGER: 'manager',
-  TESTER: 'tester',
-  VIEWER: 'viewer'
-} as const;
-
-/**
- * 角色类型
- */
-export type RoleType = (typeof ROLES)[keyof typeof ROLES];
-
-// ============================================================================
 // Error Types
 // ============================================================================
 
@@ -398,7 +170,6 @@ export enum AuthErrorType {
   USER_NOT_FOUND = 'USER_NOT_FOUND',
   USER_INACTIVE = 'USER_INACTIVE',
   TOKEN_EXPIRED = 'TOKEN_EXPIRED',
-  PERMISSION_DENIED = 'PERMISSION_DENIED',
   WEAK_PASSWORD = 'WEAK_PASSWORD',
   EMAIL_EXISTS = 'EMAIL_EXISTS',
   USERNAME_EXISTS = 'USERNAME_EXISTS',

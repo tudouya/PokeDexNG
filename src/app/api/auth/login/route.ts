@@ -40,17 +40,8 @@ export async function POST(request: NextRequest) {
 
     const { username, password } = result.data;
 
-    // 构建审计上下文
-    const auditContext = {
-      ipAddress:
-        request.headers.get('x-forwarded-for') ||
-        request.headers.get('x-real-ip') ||
-        'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown'
-    };
-
     // 调用AuthService处理登录业务逻辑
-    const user = await authService.login(username, password, auditContext);
+    const user = await authService.login(username, password);
 
     // 返回成功响应
     return Response.json({

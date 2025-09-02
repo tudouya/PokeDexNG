@@ -1,5 +1,5 @@
 // Pokedex 渗透测试平台数据库模型
-// 基于RBAC权限控制系统设计
+// 简化认证系统 - 移除RBAC权限控制
 
 generator client {
   provider = "prisma-client-js"
@@ -10,120 +10,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 用户表
+// 用户表 - 仅保留基本认证信息
 model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  username        String    @unique
-  passwordHash    String    @map("password_hash")
-  fullName        String?   @map("full_name")
-  avatar          String?
-  isActive        Boolean   @default(true) @map("is_active")
-  lastLoginAt     DateTime? @map("last_login_at")
-  
-  // 预留字段 - 当前未使用，为将来可能的安全增强预留
-  failedAttempts  Int       @default(0) @map("failed_attempts") // 预留：登录失败次数跟踪
-  lockedUntil     DateTime? @map("locked_until")              // 预留：账户锁定截止时间
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-
-  // 关联
-  userRoles     UserRole[]
-  assignedRoles UserRole[] @relation("AssignedBy")
-  auditLogs     AuditLog[]
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  username     String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String?   @map("full_name")
+  avatar       String?
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("users")
-}
-
-// 角色表
-model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  displayName String   @map("display_name")
-  description String?  @db.Text
-  isSystem    Boolean  @default(false) @map("is_system")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  userRoles   UserRole[]
-  permissions RolePermission[]
-
-  @@map("roles")
-}
-
-// 权限表
-model Permission {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique // 格式: resource.action (如: project.create)
-  displayName String   @map("display_name")
-  description String?  @db.Text
-  category    String   // project, vulnerability, report, user, system
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  roles RolePermission[]
-
-  @@index([category])
-  @@map("permissions")
-}
-
-// 用户-角色关联表
-model UserRole {
-  id         Int      @id @default(autoincrement())
-  userId     Int      @map("user_id")
-  roleId     Int      @map("role_id")
-  assignedBy Int?     @map("assigned_by")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role     Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  assigner User? @relation("AssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
-
-  @@unique([userId, roleId])
-  @@index([userId])
-  @@index([roleId])
-  @@map("user_roles")
-}
-
-// 角色-权限关联表
-model RolePermission {
-  id           Int      @id @default(autoincrement())
-  roleId       Int      @map("role_id")
-  permissionId Int      @map("permission_id")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // 关联
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-  @@map("role_permissions")
-}
-
-// 审计日志表
-model AuditLog {
-  id           Int      @id @default(autoincrement())
-  userId       Int?     @map("user_id")
-  action       String
-  resourceType String   @map("resource_type")
-  resourceId   Int?     @map("resource_id")
-  changes      Json?    // 存储变更详情
-  ipAddress    String?  @map("ip_address")
-  userAgent    String?  @map("user_agent") @db.Text
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  // 关联
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([resourceType])
-  @@index([createdAt])
-  @@map("audit_logs")
 }

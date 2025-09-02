@@ -17,22 +17,8 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getCurrentUserId();
 
-    // 构建审计上下文
-    const auditContext = {
-      ipAddress:
-        request.headers.get('x-forwarded-for') ||
-        request.headers.get('x-real-ip') ||
-        'unknown',
-      userAgent: request.headers.get('user-agent') || 'unknown'
-    };
-
     // 调用AuthService处理登出业务逻辑
-    if (userId) {
-      await authService.logout(userId, auditContext);
-    } else {
-      // 没有用户会话的情况下也要清除可能存在的会话cookie
-      await authService.logout(0, auditContext);
-    }
+    await authService.logout();
 
     return Response.json({
       status: 'success',
