@@ -8,10 +8,15 @@
 
 **核心功能：**
 
-- 项目管理 - 渗透测试项目全生命周期管理
+- 目标管理 - 测试目标资产信息管理（网站、服务器、API等）
 - 漏洞记录 - 完整记录漏洞信息、POC、复现步骤
-- 知识管理 - 构建可复用的漏洞知识库
+- 漏洞分类 - 基于OWASP等标准的漏洞分类和严重性管理
 - 报告生成 - 自动生成专业渗透测试报告
+
+**长期目标：**
+
+- 漏洞模板 - 常见漏洞的快速录入模板
+- 知识库 - 构建可复用的企业漏洞知识库
 
 **平台定位：**
 这是一个漏洞信息管理平台，专注于：
@@ -25,13 +30,13 @@
 
 - 不是扫描工具 - 不执行自动化漏洞扫描
 - 不是攻击平台 - 不提供漏洞利用执行环境
-- 不是通用PM工具 - 专注于安全测试场景
+- 不是项目管理工具 - 专注于目标和漏洞管理
 
 ## 3. Tech Stack（技术栈）
 
 **核心**: Next.js 15 (App Router) / TypeScript / React 19  
 **数据**: MySQL + Prisma ORM  
-**认证**: NextAuth.js v5 + bcryptjs + 自研RBAC  
+**认证**: NextAuth.js v5 + bcryptjs
 **UI**: shadcn/ui + Tailwind CSS v4 + React Hook Form + Zod  
 **状态**: Zustand (全局) + Nuqs (URL)  
 **表格图表**: Tanstack Table + Recharts  
