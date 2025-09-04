@@ -6,10 +6,11 @@
 
 **Problem Statement**: Penetration testers spend excessive time on manual report generation and lack efficient tools for vulnerability lifecycle management, knowledge sharing, and collaborative security testing workflows.
 
-**Platform Positioning**: 
+**Platform Positioning**:
 This is a vulnerability information management platform focused on:
+
 - Recording and organizing penetration testing discoveries
-- Secure storage of POCs and sensitive information  
+- Secure storage of POCs and sensitive information
 - Collaboration and knowledge sharing
 - Automated report generation
 
@@ -84,10 +85,11 @@ This is a vulnerability information management platform focused on:
 ### What We Are NOT
 
 - **Vulnerability Scanner**: No automated vulnerability discovery
-- **Attack Platform**: No exploitation execution environment  
+- **Attack Platform**: No exploitation execution environment
 - **Project Management Tool**: Focus on targets and vulnerabilities, not project workflows
 
 **Clear Boundaries**:
+
 - Not a scanning tool - does not execute automated vulnerability scanning
 - Not an attack platform - does not provide vulnerability exploitation environment
 - Not a project management tool - specialized for target and vulnerability management

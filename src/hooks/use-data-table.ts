@@ -34,7 +34,8 @@ import { getSortingStateParser } from '@/lib/parsers';
 import type { ExtendedColumnSort } from '@/types/data-table';
 
 const PAGE_KEY = 'page';
-const PER_PAGE_KEY = 'perPage';
+// Align with API/query usage: use `limit` instead of `perPage`.
+const PER_PAGE_KEY = 'limit';
 const SORT_KEY = 'sort';
 const ARRAY_SEPARATOR = ',';
 const DEBOUNCE_MS = 300;

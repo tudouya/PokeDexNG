@@ -18,7 +18,7 @@
 ### Authentication & Authorization
 
 - **Current**: Simplified authentication system (migrated from complex RBAC)
-- **Implementation**: NextAuth.js v5 + bcryptjs for password hashing  
+- **Implementation**: NextAuth.js v5 + bcryptjs for password hashing
 - **Session Management**: JWT tokens with secure cookie storage
 - **Authorization**: Simple ownership-based data access control
 - **Migration Note**: Simplified from over-engineered RBAC system (7000+ lines removed) following YAGNI principle
@@ -95,7 +95,7 @@
 ### Framework Selection Rationale
 
 - **Next.js 15**: Full-stack capability, excellent DX, strong ecosystem
-- **TypeScript**: Essential for large-scale application reliability  
+- **TypeScript**: Essential for large-scale application reliability
 - **Simplified Authentication**: Migrated from complex RBAC to basic ownership model (following YAGNI)
 - **Tailwind CSS**: Rapid UI development with design system consistency
 - **Prisma**: Type safety and excellent migration handling

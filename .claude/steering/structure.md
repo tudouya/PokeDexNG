@@ -114,6 +114,7 @@ features/
    - Feature-specific types and validations
 
 3. **Test Co-location**: Keep tests close to the code they test for easier maintenance and understanding
+
    - Feature tests in `features/[feature]/__tests__/`
    - Shared component tests in `components/__tests__/`
 
@@ -134,12 +135,13 @@ features/
   ```
 
 - **Index File Exports**: Each feature module must have unified exports
+
   ```typescript
   // features/target-management/index.ts
   export { TargetForm, TargetList } from './components';
   export { useTargets } from './hooks';
   export { targetService } from './services';
-  
+
   // features/vulnerability-management/index.ts
   export { VulnerabilityForm, VulnerabilityList } from './components';
   export { useVulnerabilities } from './hooks';

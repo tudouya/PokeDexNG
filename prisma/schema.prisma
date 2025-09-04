@@ -25,3 +25,69 @@ model User {
 
   @@map("users")
 }
+
+// 目标管理表
+model Target {
+  id              Int             @id @default(autoincrement())
+  projectName     String?         @map("project_name") @db.VarChar(255)
+  name            String          @db.VarChar(255)
+  
+  // 基础信息字段
+  type            TargetType      @default(WEB_APPLICATION) // 目标类型
+  url             String?         @db.VarChar(500)          // 网站/API地址
+  description     String?         @db.Text                  // 描述信息
+  
+  // 环境和范围
+  deploymentEnv   String?         @default("PROD") @map("deployment_env") @db.VarChar(50)
+  networkZone     String?         @default("INTERNET") @map("network_zone") @db.VarChar(50)
+  scope           String?         @db.Text                  // 测试范围说明
+  
+  // 状态和优先级
+  status          TargetStatus    @default(PENDING)         // 测试状态
+  priority        Priority        @default(MEDIUM)          // 优先级
+  
+  // 元数据
+  remark          String?         @db.Text                  // 备注
+  
+  // 系统字段
+  isDeleted       Boolean         @default(false) @map("is_deleted")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  // 索引优化
+  @@index([projectName, isDeleted])
+  @@index([projectName, name, isDeleted], map: "idx_targets_project_name_active") // 优化名称重复检查
+  @@index([deploymentEnv], map: "idx_targets_deployment_env")
+  @@index([networkZone], map: "idx_targets_network_zone")
+  @@index([type], map: "idx_targets_type")
+  @@index([status], map: "idx_targets_status")
+  @@map("targets")
+}
+
+// 目标类型枚举
+enum TargetType {
+  WEB_APPLICATION  // Web应用
+  API             // API接口
+  SERVER          // 服务器
+  NETWORK         // 网络设备
+  MOBILE_APP      // 移动应用
+  WECHAT_APP      // 微信小程序
+  DATABASE        // 数据库
+  OTHER           // 其他
+}
+
+// 测试状态枚举
+enum TargetStatus {
+  PENDING         // 待测试
+  IN_PROGRESS     // 测试中
+  COMPLETED       // 已完成
+  ON_HOLD         // 暂停
+}
+
+// 优先级枚举
+enum Priority {
+  LOW             // 低
+  MEDIUM          // 中
+  HIGH            // 高
+  CRITICAL        // 紧急
+}
