@@ -23,6 +23,18 @@ model User {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
+  // ========== 漏洞管理关联 ==========
+  foundVulnerabilities      Vulnerability[]              @relation("FoundByUser")
+  assignedVulnerabilities   Vulnerability[]              @relation("AssignedToUser")
+  confirmedVulnerabilities  Vulnerability[]              @relation("ConfirmedByUser")
+  verifiedVulnerabilities   Vulnerability[]              @relation("VerifiedByUser")
+  vulnerabilityComments     VulnerabilityComment[]
+  vulnerabilityAttachments  VulnerabilityAttachment[]
+  vulnerabilityTagMappings  VulnerabilityTagMapping[]
+  vulnerabilityTemplates    VulnerabilityTemplate[]
+  vulnerabilityStatusChanges VulnerabilityStatusHistory[]
+  importTasks               ImportTask[]
+
   @@map("users")
 }
 
@@ -53,6 +65,10 @@ model Target {
   isDeleted       Boolean         @default(false) @map("is_deleted")
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  // ========== 漏洞管理关联 ==========
+  vulnerabilities   Vulnerability[]
+  importTasks       ImportTask[]
   
   // 索引优化
   @@index([projectName, isDeleted])
@@ -123,6 +139,8 @@ model VulnerabilityCategory {
   
   parent         VulnerabilityCategory?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children       VulnerabilityCategory[]  @relation("CategoryHierarchy")
+  vulnerabilities Vulnerability[]
+  templates      VulnerabilityTemplate[]
   
   @@unique([name, parentId])
   @@index([parentId])
@@ -130,4 +148,376 @@ model VulnerabilityCategory {
   @@index([cweId])
   @@index([isActive, level])
   @@map("vulnerability_categories")
+}
+
+// ========== 漏洞管理相关枚举 ==========
+
+// 漏洞严重程度
+enum VulnerabilitySeverity {
+  CRITICAL  // 严重 (9.0-10.0)
+  HIGH      // 高危 (7.0-8.9)
+  MEDIUM    // 中危 (4.0-6.9)
+  LOW       // 低危 (0.1-3.9)
+  INFO      // 信息 (0.0)
+}
+
+// 漏洞状态
+enum VulnerabilityStatus {
+  OPEN              // 开放（新发现）
+  CONFIRMED         // 已确认
+  IN_PROGRESS       // 修复中
+  FIXED             // 已修复
+  VERIFIED          // 已验证
+  REOPEN            // 重新开放
+  WONT_FIX          // 不修复
+  FALSE_POSITIVE    // 误报
+  DUPLICATE         // 重复
+  ACCEPTED_RISK     // 接受风险
+}
+
+// 业务影响级别
+enum BusinessImpact {
+  CRITICAL          // 业务完全中断
+  HIGH              // 严重影响业务
+  MEDIUM            // 部分影响业务
+  LOW               // 轻微影响
+  NONE              // 无业务影响
+}
+
+// 数据暴露级别
+enum DataExposureLevel {
+  SENSITIVE         // 敏感数据（密码、密钥等）
+  PII               // 个人身份信息
+  INTERNAL          // 内部数据
+  PUBLIC            // 公开数据
+  NONE              // 无数据暴露
+}
+
+// 可利用性级别
+enum ExploitabilityLevel {
+  FUNCTIONAL        // 功能性（有完整利用代码）
+  POC               // 概念验证（有POC）
+  THEORETICAL       // 理论可行
+  UNKNOWN           // 未知
+}
+
+// 附件类型
+enum AttachmentType {
+  SCREENSHOT        // 截图
+  VIDEO             // 视频
+  EVIDENCE          // 证据文件
+  POC_CODE          // POC代码
+  SCAN_REPORT       // 扫描报告
+  OTHER             // 其他
+}
+
+// 导入状态
+enum ImportStatus {
+  PENDING           // 待处理
+  UPLOADING         // 上传中
+  PARSING           // 解析中
+  VALIDATING        // 验证中
+  IMPORTING         // 导入中
+  COMPLETED         // 完成
+  FAILED            // 失败
+  CANCELLED         // 已取消
+}
+
+// ========== 漏洞管理核心表 ==========
+
+// 漏洞主表
+model Vulnerability {
+  id                Int                          @id @default(autoincrement())
+  
+  // ========== 基础信息 ==========
+  title             String                       @db.VarChar(500)
+  description       String                       @db.Text
+  severity          VulnerabilitySeverity        // 严重程度
+  status            VulnerabilityStatus          @default(OPEN) // 漏洞状态
+  
+  // ========== 关联关系 ==========
+  targetId          Int                          @map("target_id")
+  categoryId        Int?                         @map("category_id")
+  templateId        Int?                         @map("template_id")  // 关联使用的模板
+  
+  // ========== 时间管理 ==========
+  foundDate         DateTime                     @default(now()) @map("found_date")     // 发现时间
+  dueDate           DateTime?                    @map("due_date")                      // 截止修复时间
+  confirmedAt       DateTime?                    @map("confirmed_at")                  // 确认时间
+  fixedAt           DateTime?                    @map("fixed_at")                      // 修复时间
+  verifiedAt        DateTime?                    @map("verified_at")                   // 验证时间
+  
+  // ========== 漏洞位置 ==========
+  affectedModule    String?                      @map("affected_module") @db.VarChar(500)      // 受影响模块
+  affectedParameter String?                      @map("affected_parameter") @db.VarChar(500)   // 受影响参数
+  affectedUrl       String?                      @map("affected_url") @db.VarChar(1000)        // 受影响URL
+  affectedEndpoint  String?                      @map("affected_endpoint") @db.VarChar(500)    // API端点
+  
+  // ========== 复现和证明 ==========
+  reproductionSteps String?                      @map("reproduction_steps") @db.Text    // 复现步骤
+  proofOfConcept    String?                      @map("proof_of_concept") @db.Text      // POC代码
+  requestData       String?                      @map("request_data") @db.Text          // 请求数据
+  responseData      String?                      @map("response_data") @db.Text         // 响应数据
+  
+  // ========== 影响评估 ==========
+  impact            String?                      @db.Text                               // 技术影响
+  businessImpact    BusinessImpact?              @map("business_impact")                // 业务影响级别
+  affectedUsers     Int?                         @map("affected_users")                 // 影响用户数
+  dataExposure      DataExposureLevel?           @map("data_exposure")                  // 数据暴露级别
+  
+  // ========== 修复建议 ==========
+  recommendation    String?                      @db.Text                               // 修复建议
+  workaround        String?                      @db.Text                               // 临时解决方案
+  references        String?                      @db.Text                               // 参考链接
+  
+  // ========== 安全评分 ==========
+  cvssScore         Float?                       @map("cvss_score")                     // CVSS分数
+  cvssVector        String?                      @map("cvss_vector") @db.VarChar(200)  // CVSS向量字符串
+  cvssVersion       String?                      @default("3.1") @map("cvss_version") @db.VarChar(10)
+  exploitability    ExploitabilityLevel?         @map("exploitability")                 // 可利用性
+  
+  // ========== 标准映射 ==========
+  cweId             String?                      @map("cwe_id") @db.VarChar(20)        // CWE编号
+  cveId             String?                      @map("cve_id") @db.VarChar(30)        // CVE编号
+  owaspId           String?                      @map("owasp_id") @db.VarChar(20)      // OWASP Top 10
+  
+  // ========== 人员管理 ==========
+  foundBy           Int                          @map("found_by")                       // 发现人
+  assignedTo        Int?                         @map("assigned_to")                    // 指派给
+  confirmedBy       Int?                         @map("confirmed_by")                   // 确认人
+  verifiedBy        Int?                         @map("verified_by")                    // 验证人
+  
+  // ========== 导入信息 ==========
+  importTaskId      Int?                         @map("import_task_id")                 // 导入任务ID
+  sourceScanner     String?                      @map("source_scanner") @db.VarChar(50) // 来源扫描器
+  scannerVulnId     String?                      @map("scanner_vuln_id") @db.VarChar(100) // 扫描器漏洞ID
+  
+  // ========== 系统字段 ==========
+  isDeleted         Boolean                      @default(false) @map("is_deleted")
+  createdAt         DateTime                     @default(now()) @map("created_at")
+  updatedAt         DateTime                     @updatedAt @map("updated_at")
+  
+  // ========== 关系定义 ==========
+  target            Target                       @relation(fields: [targetId], references: [id])
+  category          VulnerabilityCategory?       @relation(fields: [categoryId], references: [id])
+  template          VulnerabilityTemplate?       @relation(fields: [templateId], references: [id])
+  importTask        ImportTask?                  @relation(fields: [importTaskId], references: [id])
+  
+  foundByUser       User                         @relation("FoundByUser", fields: [foundBy], references: [id])
+  assignedToUser    User?                        @relation("AssignedToUser", fields: [assignedTo], references: [id])
+  confirmedByUser   User?                        @relation("ConfirmedByUser", fields: [confirmedBy], references: [id])
+  verifiedByUser    User?                        @relation("VerifiedByUser", fields: [verifiedBy], references: [id])
+  
+  statusHistory     VulnerabilityStatusHistory[]
+  comments          VulnerabilityComment[]
+  attachments       VulnerabilityAttachment[]
+  tags              VulnerabilityTagMapping[]
+  
+  // ========== 索引优化 ==========
+  @@index([targetId, isDeleted])
+  @@index([categoryId])
+  @@index([templateId])
+  @@index([severity, status])
+  @@index([status, foundDate])
+  @@index([assignedTo, status])
+  @@index([foundBy])
+  @@index([importTaskId])
+  @@index([cweId])
+  @@map("vulnerabilities")
+}
+
+// 漏洞模板表 - 提高录入效率
+model VulnerabilityTemplate {
+  id                Int                    @id @default(autoincrement())
+  name              String                 @unique @db.VarChar(255)
+  code              String                 @unique @db.VarChar(50)  // 模板编码，如 "XSS-001"
+  categoryId        Int                    @map("category_id")
+  
+  // ========== 预设内容 ==========
+  titleTemplate     String                 @map("title_template") @db.VarChar(500)
+  descriptionTemplate String               @map("description_template") @db.Text
+  severity          VulnerabilitySeverity  @default(MEDIUM)
+  
+  // ========== 标准内容 ==========
+  impact            String?                @db.Text
+  recommendation    String?                @db.Text
+  references        String?                @db.Text
+  reproductionSteps String?                @map("reproduction_steps") @db.Text
+  
+  // ========== 默认评分 ==========
+  defaultCvssVector String?                @map("default_cvss_vector") @db.VarChar(200)
+  defaultCvssScore  Float?                 @map("default_cvss_score")
+  
+  // ========== 标准映射 ==========
+  cweId             String?                @map("cwe_id") @db.VarChar(20)
+  owaspId           String?                @map("owasp_id") @db.VarChar(20)
+  
+  // ========== 使用统计 ==========
+  isActive          Boolean                @default(true) @map("is_active")
+  usageCount        Int                    @default(0) @map("usage_count")
+  lastUsedAt        DateTime?              @map("last_used_at")
+  
+  // ========== 系统字段 ==========
+  createdBy         Int                    @map("created_by")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+  
+  // ========== 关系定义 ==========
+  category          VulnerabilityCategory  @relation(fields: [categoryId], references: [id])
+  creator           User                   @relation(fields: [createdBy], references: [id])
+  vulnerabilities   Vulnerability[]
+  
+  @@index([categoryId])
+  @@index([isActive, usageCount])
+  @@map("vulnerability_templates")
+}
+
+// 漏洞状态变更历史表
+model VulnerabilityStatusHistory {
+  id              Int                   @id @default(autoincrement())
+  vulnerabilityId Int                   @map("vulnerability_id")
+  fromStatus      VulnerabilityStatus?  @map("from_status")
+  toStatus        VulnerabilityStatus   @map("to_status")
+  changedBy       Int                   @map("changed_by")
+  changeReason    String?               @map("change_reason") @db.Text
+  changedAt       DateTime              @default(now()) @map("changed_at")
+  
+  vulnerability   Vulnerability         @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  changedByUser   User                  @relation(fields: [changedBy], references: [id])
+  
+  @@index([vulnerabilityId, changedAt])
+  @@map("vulnerability_status_history")
+}
+
+// 漏洞评论表 - 团队协作
+model VulnerabilityComment {
+  id              Int           @id @default(autoincrement())
+  vulnerabilityId Int           @map("vulnerability_id")
+  parentId        Int?          @map("parent_id")  // 支持评论回复
+  authorId        Int           @map("author_id")
+  content         String        @db.Text
+  isInternal      Boolean       @default(false) @map("is_internal")  // 内部评论
+  mentionedUsers  Json?         @map("mentioned_users")  // @提及的用户ID数组
+  
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  isDeleted       Boolean       @default(false) @map("is_deleted")
+  
+  vulnerability   Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  author          User          @relation(fields: [authorId], references: [id])
+  parent          VulnerabilityComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies         VulnerabilityComment[] @relation("CommentReplies")
+  
+  @@index([vulnerabilityId, isDeleted])
+  @@index([parentId])
+  @@map("vulnerability_comments")
+}
+
+// 漏洞附件表 - 文件管理
+model VulnerabilityAttachment {
+  id              Int           @id @default(autoincrement())
+  vulnerabilityId Int           @map("vulnerability_id")
+  fileName        String        @map("file_name") @db.VarChar(255)
+  originalName    String        @map("original_name") @db.VarChar(255)  // 原始文件名
+  fileType        String        @map("file_type") @db.VarChar(50)
+  mimeType        String        @map("mime_type") @db.VarChar(100)
+  fileSize        Int           @map("file_size")  // bytes
+  filePath        String        @map("file_path") @db.VarChar(1000)
+  fileHash        String?       @map("file_hash") @db.VarChar(64)  // SHA256
+  
+  attachmentType  AttachmentType @default(EVIDENCE) @map("attachment_type")
+  description     String?       @db.Text
+  
+  uploadedBy      Int           @map("uploaded_by")
+  uploadedAt      DateTime      @default(now()) @map("uploaded_at")
+  isDeleted       Boolean       @default(false) @map("is_deleted")
+  
+  vulnerability   Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  uploadedByUser  User          @relation(fields: [uploadedBy], references: [id])
+  
+  @@index([vulnerabilityId, isDeleted])
+  @@index([attachmentType])
+  @@map("vulnerability_attachments")
+}
+
+// 漏洞标签表 - 灵活分类
+model VulnerabilityTag {
+  id              Int                      @id @default(autoincrement())
+  name            String                   @unique @db.VarChar(50)
+  slug            String                   @unique @db.VarChar(50)  // URL友好的标识
+  color           String                   @default("#666666") @db.VarChar(7)
+  icon            String?                  @db.VarChar(50)  // 图标类名
+  description     String?                  @db.Text
+  
+  isSystem        Boolean                  @default(false) @map("is_system")  // 系统标签不可删除
+  usageCount      Int                      @default(0) @map("usage_count")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  
+  vulnerabilities VulnerabilityTagMapping[]
+  
+  @@index([slug])
+  @@map("vulnerability_tags")
+}
+
+// 漏洞标签映射表
+model VulnerabilityTagMapping {
+  id              Int              @id @default(autoincrement())
+  vulnerabilityId Int              @map("vulnerability_id")
+  tagId           Int              @map("tag_id")
+  addedBy         Int              @map("added_by")
+  addedAt         DateTime         @default(now()) @map("added_at")
+  
+  vulnerability   Vulnerability    @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  tag             VulnerabilityTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  addedByUser     User             @relation(fields: [addedBy], references: [id])
+  
+  @@unique([vulnerabilityId, tagId])
+  @@index([tagId])
+  @@map("vulnerability_tag_mappings")
+}
+
+// 批量导入任务表
+model ImportTask {
+  id              Int            @id @default(autoincrement())
+  userId          Int            @map("user_id")
+  targetId        Int            @map("target_id")
+  
+  // ========== 文件信息 ==========
+  fileName        String         @map("file_name") @db.VarChar(500)
+  fileType        String         @map("file_type") @db.VarChar(50)  // CSV, JSON, XML, BURP, ZAP等
+  fileSize        Int            @map("file_size")  // bytes
+  filePath        String?        @map("file_path") @db.VarChar(1000)
+  
+  // ========== 任务状态 ==========
+  status          ImportStatus   @default(PENDING)
+  progress        Int            @default(0)  // 0-100
+  
+  // ========== 处理统计 ==========
+  totalItems      Int?           @map("total_items")      // 总条数
+  processedItems  Int?           @map("processed_items")  // 已处理
+  successItems    Int?           @map("success_items")    // 成功数
+  failedItems     Int?           @map("failed_items")     // 失败数
+  duplicateItems  Int?           @map("duplicate_items")  // 重复数
+  
+  // ========== 处理详情 ==========
+  mappingRules    Json?          @map("mapping_rules")    // 字段映射规则
+  importOptions   Json?          @map("import_options")   // 导入选项
+  parseResult     Json?          @map("parse_result")     // 解析结果
+  errorLog        Json?          @map("error_log")        // 错误日志
+  summary         Json?          @map("summary")          // 导入摘要
+  
+  // ========== 时间记录 ==========
+  createdAt       DateTime       @default(now()) @map("created_at")
+  startedAt       DateTime?      @map("started_at")
+  completedAt     DateTime?      @map("completed_at")
+  
+  // ========== 关系定义 ==========
+  user            User           @relation(fields: [userId], references: [id])
+  target          Target         @relation(fields: [targetId], references: [id])
+  vulnerabilities Vulnerability[]
+  
+  @@index([userId, status])
+  @@index([targetId])
+  @@index([status, createdAt])
+  @@map("import_tasks")
 }
