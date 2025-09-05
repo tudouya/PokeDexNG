@@ -1,0 +1,314 @@
+{
+  "SQL注入": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "SQL注入",
+    "cweId": "CWE-89",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "使用SQLMap等自动化工具进行SQL注入测试，手工验证注入点",
+    "remediation": "使用参数化查询或预编译语句，避免直接拼接SQL语句；进行输入验证和过滤"
+  },
+  "反射型XSS": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "跨站脚本",
+    "cweId": "CWE-79",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "使用XSS测试向量进行手工测试，验证输出编码",
+    "remediation": "对所有用户输入进行HTML编码，使用CSP策略，实施输入验证白名单"
+  },
+  "存储型XSS": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "跨站脚本",
+    "cweId": "CWE-79",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "在数据存储点注入XSS payload，验证输出时是否执行",
+    "remediation": "在数据存储前进行过滤，输出时进行编码，实施严格的内容安全策略"
+  },
+  "命令注入": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "命令注入",
+    "cweId": "CWE-78",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "尝试注入系统命令，观察是否执行，使用时间延迟技术验证",
+    "remediation": "避免使用系统命令，如必须使用则采用白名单验证，使用参数化接口"
+  },
+  "命令执行": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "命令执行",
+    "cweId": "CWE-78",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "测试是否可以执行任意系统命令，验证命令执行上下文",
+    "remediation": "使用安全的API替代系统命令，实施最小权限原则"
+  },
+  "代码执行": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "代码注入",
+    "cweId": "CWE-94",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "尝试注入并执行代码片段，验证执行环境",
+    "remediation": "避免动态代码执行，使用沙箱环境，实施代码签名"
+  },
+  "XXE注入": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "XML外部实体注入",
+    "cweId": "CWE-611",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "提交包含外部实体的XML，测试是否解析外部资源",
+    "remediation": "禁用XML外部实体解析，使用安全的XML解析器配置"
+  },
+  "SSRF": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "服务端请求伪造",
+    "cweId": "CWE-918",
+    "owaspCategory": "A10:2021",
+    "testingMethod": "尝试访问内网资源，使用DNS重绑定技术测试",
+    "remediation": "实施URL白名单，禁止访问内网地址，使用独立的网络环境"
+  },
+  "文件上传": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "不安全的文件上传",
+    "cweId": "CWE-434",
+    "owaspCategory": "A04:2021",
+    "testingMethod": "上传恶意文件测试，验证文件类型和内容检查",
+    "remediation": "验证文件类型和内容，重命名文件，存储在非Web目录"
+  },
+  "文件包含": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "文件包含",
+    "cweId": "CWE-98",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "测试本地和远程文件包含，使用伪协议测试",
+    "remediation": "使用白名单限制可包含文件，避免用户输入直接用于文件路径"
+  },
+  "文件读取": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "路径遍历",
+    "cweId": "CWE-22",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "使用目录遍历序列测试，验证可读取的文件范围",
+    "remediation": "验证和规范化文件路径，使用白名单限制可访问文件"
+  },
+  "目录遍历": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "路径遍历",
+    "cweId": "CWE-22",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "使用../序列测试目录遍历，验证访问控制",
+    "remediation": "使用绝对路径，验证用户输入，限制文件访问范围"
+  },
+  "CSRF": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "跨站请求伪造",
+    "cweId": "CWE-352",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "构造恶意请求测试，验证token机制",
+    "remediation": "实施CSRF Token机制，验证Referer头，使用SameSite Cookie"
+  },
+  "越权查询漏洞": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "越权访问",
+    "cweId": "CWE-639",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "使用不同权限账户测试数据访问，验证横向越权",
+    "remediation": "实施基于角色的访问控制，验证每个请求的权限"
+  },
+  "越权删除漏洞": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "越权访问",
+    "cweId": "CWE-639",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "测试是否可以删除其他用户的数据",
+    "remediation": "在删除操作前验证用户权限和数据所有权"
+  },
+  "越权修改漏洞": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "越权访问",
+    "cweId": "CWE-639",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "测试是否可以修改其他用户的数据",
+    "remediation": "实施严格的权限检查，记录所有修改操作"
+  },
+  "越权新增漏洞": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "越权访问",
+    "cweId": "CWE-639",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "测试是否可以为其他用户创建数据",
+    "remediation": "验证用户创建数据的权限范围"
+  },
+  "垂直越权漏洞": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "权限提升",
+    "cweId": "CWE-269",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "测试低权限用户是否可以访问高权限功能",
+    "remediation": "实施基于角色的访问控制，定期审计权限配置"
+  },
+  "未授权访问": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "认证缺失",
+    "cweId": "CWE-306",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "直接访问受保护资源，测试是否需要认证",
+    "remediation": "对所有敏感资源实施认证检查"
+  },
+  "权限绕过": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "认证绕过",
+    "cweId": "CWE-287",
+    "owaspCategory": "A07:2021",
+    "testingMethod": "测试各种绕过技术，如参数污染、HTTP方法篡改",
+    "remediation": "实施多层防御，使用成熟的认证框架"
+  },
+  "登录认证缺陷": {
+    "rootCause": "访问控制缺陷",
+    "technicalCategory": "认证缺陷",
+    "cweId": "CWE-287",
+    "owaspCategory": "A07:2021",
+    "testingMethod": "测试认证流程，包括密码重置、会话管理",
+    "remediation": "实施安全的认证机制，使用多因素认证"
+  },
+  "弱口令": {
+    "rootCause": "配置管理缺陷",
+    "technicalCategory": "弱凭证",
+    "cweId": "CWE-521",
+    "owaspCategory": "A07:2021",
+    "testingMethod": "使用字典攻击测试，验证密码复杂度策略",
+    "remediation": "实施密码复杂度要求，定期强制更换密码"
+  },
+  "信息泄露": {
+    "rootCause": "信息暴露缺陷",
+    "technicalCategory": "敏感信息泄露",
+    "cweId": "CWE-200",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "检查错误信息、注释、备份文件等",
+    "remediation": "最小化错误信息，删除调试信息，实施安全配置"
+  },
+  "swagger信息泄漏": {
+    "rootCause": "信息暴露缺陷",
+    "technicalCategory": "配置信息泄露",
+    "cweId": "CWE-200",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "访问/swagger-ui.html等常见路径",
+    "remediation": "在生产环境禁用Swagger，或添加访问控制"
+  },
+  "Druid信息泄露": {
+    "rootCause": "信息暴露缺陷",
+    "technicalCategory": "配置信息泄露",
+    "cweId": "CWE-200",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "访问/druid/index.html等监控页面",
+    "remediation": "对Druid监控页面添加认证，或在生产环境禁用"
+  },
+  "Spring Boot Actuator未授权访问漏洞": {
+    "rootCause": "信息暴露缺陷",
+    "technicalCategory": "配置信息泄露",
+    "cweId": "CWE-200",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "访问/actuator端点，检查暴露的敏感信息",
+    "remediation": "限制Actuator端点访问，添加认证保护"
+  },
+  "管理后台对外": {
+    "rootCause": "配置管理缺陷",
+    "technicalCategory": "不安全的默认配置",
+    "cweId": "CWE-16",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "扫描常见管理后台路径，测试是否可公网访问",
+    "remediation": "限制管理后台访问IP，使用VPN或堡垒机"
+  },
+  "反序列化": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "不安全的反序列化",
+    "cweId": "CWE-502",
+    "owaspCategory": "A08:2021",
+    "testingMethod": "提交恶意序列化数据，测试是否执行",
+    "remediation": "避免反序列化不可信数据，使用安全的序列化格式"
+  },
+  "URL跳转": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "开放重定向",
+    "cweId": "CWE-601",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "测试重定向参数，验证是否可跳转到外部网站",
+    "remediation": "使用白名单验证跳转URL，避免用户输入直接用于跳转"
+  },
+  "CRLF": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "HTTP响应拆分",
+    "cweId": "CWE-93",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "注入CRLF字符，测试是否可以注入HTTP头",
+    "remediation": "过滤CRLF字符，使用安全的HTTP库"
+  },
+  "CORS劫持": {
+    "rootCause": "配置管理缺陷",
+    "technicalCategory": "CORS配置错误",
+    "cweId": "CWE-942",
+    "owaspCategory": "A05:2021",
+    "testingMethod": "测试Origin头验证，检查是否接受任意来源",
+    "remediation": "配置严格的CORS策略，验证Origin头"
+  },
+  "短信轰炸漏洞": {
+    "rootCause": "控制流缺陷",
+    "technicalCategory": "业务逻辑错误",
+    "cweId": "CWE-770",
+    "owaspCategory": null,
+    "testingMethod": "测试短信发送频率限制，验证验证码机制",
+    "remediation": "实施发送频率限制，添加图形验证码，IP限制"
+  },
+  "支付漏洞": {
+    "rootCause": "控制流缺陷",
+    "technicalCategory": "业务逻辑错误",
+    "cweId": "CWE-840",
+    "owaspCategory": null,
+    "testingMethod": "测试支付流程，包括金额篡改、重放攻击",
+    "remediation": "验证支付金额，使用安全的支付网关，实施幂等性"
+  },
+  "条件竞争漏洞": {
+    "rootCause": "控制流缺陷",
+    "technicalCategory": "竞态条件",
+    "cweId": "CWE-362",
+    "owaspCategory": null,
+    "testingMethod": "并发请求测试，验证资源锁机制",
+    "remediation": "使用锁机制，实施事务控制，避免并发操作共享资源"
+  },
+  "逻辑漏洞": {
+    "rootCause": "控制流缺陷",
+    "technicalCategory": "业务逻辑错误",
+    "cweId": "CWE-840",
+    "owaspCategory": null,
+    "testingMethod": "分析业务流程，测试异常流程和边界条件",
+    "remediation": "完善业务逻辑验证，添加状态检查，记录关键操作"
+  },
+  "DOS": {
+    "rootCause": "控制流缺陷",
+    "technicalCategory": "拒绝服务",
+    "cweId": "CWE-400",
+    "owaspCategory": null,
+    "testingMethod": "发送大量请求或特殊构造的请求测试",
+    "remediation": "实施速率限制，资源配额，输入大小限制"
+  },
+  "JSON劫持": {
+    "rootCause": "信息暴露缺陷",
+    "technicalCategory": "信息泄露",
+    "cweId": "CWE-352",
+    "owaspCategory": "A01:2021",
+    "testingMethod": "测试JSON接口是否可被跨域访问",
+    "remediation": "使用POST请求，验证Content-Type，添加CSRF保护"
+  },
+  "后门": {
+    "rootCause": "配置管理缺陷",
+    "technicalCategory": "恶意代码",
+    "cweId": "CWE-506",
+    "owaspCategory": null,
+    "testingMethod": "代码审计，检查隐藏的访问入口",
+    "remediation": "定期代码审计，使用代码签名，监控异常行为"
+  },
+  "内容注入": {
+    "rootCause": "输入验证缺陷",
+    "technicalCategory": "内容欺骗",
+    "cweId": "CWE-74",
+    "owaspCategory": "A03:2021",
+    "testingMethod": "注入恶意内容，测试是否在页面展示",
+    "remediation": "对用户输入进行过滤和编码，使用内容安全策略"
+  }
+}

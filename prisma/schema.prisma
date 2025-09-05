@@ -91,3 +91,43 @@ enum Priority {
   HIGH            // 高
   CRITICAL        // 紧急
 }
+
+// 漏洞分类表 - 支持多层级分类体系
+model VulnerabilityCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  parentId    Int?     @map("parent_id")
+  level       Int      @default(0)
+  sort        Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  isLeaf      Boolean  @default(false) @map("is_leaf")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // 三层分类体系字段
+  rootCause           String?   @map("root_cause") @db.VarChar(50)         // 5大根因分类
+  technicalCategory   String?   @map("technical_category") @db.VarChar(100) // 技术分类
+  
+  // 标准映射字段
+  cweId               String?   @map("cwe_id") @db.VarChar(20)              // CWE标准
+  owaspCategory       String?   @map("owasp_category") @db.VarChar(50)      // OWASP分类
+  
+  // 知识库字段
+  testingMethod       String?   @map("testing_method") @db.Text             // 测试方法
+  remediationTemplate String?   @map("remediation_template") @db.Text       // 修复建议模板
+  
+  // 统计字段
+  usageCount          Int       @default(0) @map("usage_count")             // 使用次数
+  lastUsedAt          DateTime? @map("last_used_at")                        // 最后使用时间
+  
+  parent         VulnerabilityCategory?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       VulnerabilityCategory[]  @relation("CategoryHierarchy")
+  
+  @@unique([name, parentId])
+  @@index([parentId])
+  @@index([rootCause])
+  @@index([cweId])
+  @@index([isActive, level])
+  @@map("vulnerability_categories")
+}
