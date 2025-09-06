@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+// NextRequest imported but not used in this file
 import { targetService } from '@/features/targets';
 import {
   UpdateTargetSchema,

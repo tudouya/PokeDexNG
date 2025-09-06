@@ -51,7 +51,8 @@ export async function GET() {
       }
     });
   } catch (error) {
-    console.error('获取会话信息出错:', error);
+    // TODO: Replace with proper logging system
+    // console.error('获取会话信息出错:', error);
 
     return Response.json(
       {

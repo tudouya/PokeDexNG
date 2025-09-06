@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('登录过程出错:', error);
+    // TODO: Replace with proper logging system
+    // console.error('登录过程出错:', error);
 
     // 业务逻辑错误（用户名密码错误等）
     if (error instanceof Error) {

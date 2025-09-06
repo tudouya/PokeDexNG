@@ -1,4 +1,4 @@
-import { type NextRequest } from 'next/server';
+// NextRequest imported but not used in this file
 import { targetService } from '@/features/targets';
 import {
   CreateTargetSchema,
@@ -7,8 +7,8 @@ import {
 import {
   withAuthApiHandler,
   createSuccessResponse,
-  validateAndSanitize,
-  NotFoundError
+  validateAndSanitize
+  // NotFoundError - imported but not used in this file
 } from '@/lib/services/shared.utils';
 
 // GET /api/targets - 获取目标列表

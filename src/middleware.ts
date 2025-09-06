@@ -96,7 +96,8 @@ export default async function middleware(request: NextRequest) {
           expires: expiresInOneDay
         });
       } catch (refreshError) {
-        console.warn('会话刷新失败:', refreshError);
+        // TODO: Replace with proper logging system
+        // console.warn('会话刷新失败:', refreshError);
         // 刷新失败但不影响当前请求
       }
     }

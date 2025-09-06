@@ -13,9 +13,10 @@ import { authService } from '@/lib/services/auth.service';
 /**
  * 用户登出
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
-    const userId = await getCurrentUserId();
+    // Get user ID but don't use it for logout - auth service handles session clearing
+    await getCurrentUserId();
 
     // 调用AuthService处理登出业务逻辑
     await authService.logout();
@@ -27,14 +28,16 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('登出过程出错:', error);
+    // TODO: Replace with proper logging system
+    // console.error('登出过程出错:', error);
 
     // 即使出错也尝试清除会话，确保用户安全
     try {
       const { clearSession } = await import('@/lib/auth/session');
       await clearSession();
     } catch (clearError) {
-      console.error('清除会话失败:', clearError);
+      // TODO: Replace with proper logging system
+      // console.error('清除会话失败:', clearError);
     }
 
     return Response.json(

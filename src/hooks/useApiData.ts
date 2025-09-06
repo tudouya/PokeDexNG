@@ -138,7 +138,7 @@ export function useApiData<T, P = any>(
         abortControllerRef.current = null;
       }
     },
-    [endpoint, options?.method]
+    [endpoint, options?.method, options?.headers]
   );
 
   // 组件卸载时取消请求
