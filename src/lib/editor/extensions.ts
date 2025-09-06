@@ -3,7 +3,6 @@ import Image from '@tiptap/extension-image';
 import FileHandler from '@tiptap/extension-file-handler';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Placeholder from '@tiptap/extension-placeholder';
-import Dropcursor from '@tiptap/extension-dropcursor';
 import { createLowlight } from 'lowlight';
 
 // 注册常用编程语言用于语法高亮
@@ -41,7 +40,12 @@ export function createEditorExtensions(options?: {
   return [
     StarterKit.configure({
       // 禁用默认的CodeBlock，使用带语法高亮的版本
-      codeBlock: false
+      codeBlock: false,
+      // 配置 dropcursor（避免重复注册）
+      dropcursor: {
+        color: '#64748b', // slate-500
+        width: 2
+      }
     }),
     CodeBlockLowlight.configure({
       lowlight,
@@ -108,10 +112,6 @@ export function createEditorExtensions(options?: {
     }),
     Placeholder.configure({
       placeholder: options?.placeholder || '开始输入内容...'
-    }),
-    Dropcursor.configure({
-      color: '#64748b', // slate-500
-      width: 2
     })
   ];
 }

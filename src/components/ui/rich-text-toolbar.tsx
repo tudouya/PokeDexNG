@@ -99,14 +99,35 @@ export function RichTextToolbar({ editor, className }: RichTextToolbarProps) {
       }
 
       try {
+        // 获取当前光标位置，用于插入图片
+        const currentPos = editor.state.selection.from;
+
         // 上传图片
         const url = await uploadImage(file);
 
-        // 编辑器可能在异步期间被重建或销毁，这里做保护
-        if ((editor as any)?.isDestroyed) return;
+        // 增强的编辑器状态检查
+        if (!editor || (editor as any)?.isDestroyed || !editor.isEditable) {
+          console.warn('[Toolbar] Editor is not available after image upload');
+          return;
+        }
 
-        // 插入图片
-        editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+        // 使用保存的位置插入图片，避免光标位置丢失
+        try {
+          editor
+            .chain()
+            .insertContentAt(currentPos, {
+              type: 'image',
+              attrs: { src: url, alt: file.name }
+            })
+            .focus()
+            .run();
+        } catch (insertError) {
+          // 如果按位置插入失败，尝试普通插入
+          console.warn(
+            '[Toolbar] Position-based insert failed, trying simple insert'
+          );
+          editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+        }
       } catch (error) {
         console.error('图片上传失败:', error);
         const errorMessage =

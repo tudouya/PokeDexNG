@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import {
   Card,
@@ -56,6 +56,18 @@ export function CommentSection({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showInternalOnly, setShowInternalOnly] = useState(false);
 
+  // 添加受控模式的编辑器内容状态，带有持久化支持
+  const persistenceKey = `comment-draft-vuln-${vulnerabilityId}`;
+
+  // 初始化时从 sessionStorage 恢复内容
+  const [editorContent, setEditorContent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem(persistenceKey);
+      return saved || '';
+    }
+    return '';
+  });
+
   // 使用评论Hook
   const {
     comments,
@@ -82,19 +94,39 @@ export function CommentSection({
     return comments.filter((comment) => comment.isInternal);
   }, [comments, showInternalOnly]);
 
+  // 处理编辑器内容变化，包含持久化
+  const handleContentChange = useCallback(
+    (content: string) => {
+      setEditorContent(content);
+      // 实时保存到 sessionStorage，确保在 Fast Refresh 期间不丢失
+      if (typeof window !== 'undefined') {
+        if (content && content !== '<p></p>') {
+          sessionStorage.setItem(persistenceKey, content);
+        } else {
+          sessionStorage.removeItem(persistenceKey);
+        }
+      }
+    },
+    [persistenceKey]
+  );
+
   // 处理发送新评论
   const handleSubmitComment = async () => {
-    const content = editorRef.current?.getContent() || '';
-    if (!content.trim() || content === '<p></p>') return;
+    // 使用状态中的内容，而不是通过ref获取
+    if (!editorContent.trim() || editorContent === '<p></p>') return;
 
     const success = await addComment({
-      content: content,
+      content: editorContent,
       isInternal
     });
 
     if (success) {
-      editorRef.current?.clear();
+      // 清空编辑器内容状态和持久化存储
+      setEditorContent('');
       setIsInternal(false);
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(persistenceKey);
+      }
     }
   };
 
@@ -224,6 +256,8 @@ export function CommentSection({
             <div className='space-y-3'>
               <RichTextEditor
                 ref={editorRef}
+                content={editorContent}
+                onChange={handleContentChange}
                 placeholder='分享您的想法、见解或问题...'
                 minHeight='120px'
                 maxHeight='300px'

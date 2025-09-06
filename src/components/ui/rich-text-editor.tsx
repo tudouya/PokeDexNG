@@ -65,7 +65,15 @@ export const RichTextEditor = forwardRef<
     // 保护机制：记录上一次的内容，防止意外清空
     const lastContentRef = useRef<string>('');
 
-    // 图片上传处理函数（使用useCallback防止重新创建）
+    // 增强保护：记录最后一次确认的内容状态
+    const confirmedContentRef = useRef<string>(content || '');
+    const contentSyncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // 图片上传处理函数 - 使用useRef保持引用稳定，避免编辑器重建
+    const imageUploadRef = useRef<((file: File) => Promise<string>) | null>(
+      null
+    );
+
     const handleImageUpload = useCallback(
       async (file: File): Promise<string> => {
         try {
@@ -91,6 +99,9 @@ export const RichTextEditor = forwardRef<
       []
     ); // 空依赖数组，因为uploadImage和toast都是稳定的
 
+    // 更新ref以保持最新的处理函数
+    imageUploadRef.current = handleImageUpload;
+
     // 调试日志
     // Debug: RichTextEditor render
 
@@ -99,7 +110,7 @@ export const RichTextEditor = forwardRef<
       {
         extensions: createEditorExtensions({
           placeholder,
-          onImageUpload: handleImageUpload
+          onImageUpload: (file: File) => imageUploadRef.current!(file)
         }),
         content: content,
         editable,
@@ -108,17 +119,36 @@ export const RichTextEditor = forwardRef<
           const html = editor.getHTML();
           // Debug: Editor onUpdate
 
-          // 保护机制：检查是否意外清空
-          if (
-            html === '<p></p>' &&
-            lastContentRef.current &&
-            lastContentRef.current !== '<p></p>'
-          ) {
+          // 增强保护机制：检查是否意外清空
+          const isEmptyContent = html === '<p></p>' || html === '';
+          const hasValidPreviousContent =
+            confirmedContentRef.current &&
+            confirmedContentRef.current !== '<p></p>' &&
+            confirmedContentRef.current !== '';
+
+          if (isEmptyContent && hasValidPreviousContent) {
             // Debug: Detected unexpected content clearing, attempting to restore
-            // 可以选择恢复内容或者忽略这次更新
+            console.warn(
+              '[RichTextEditor] Detected content loss, attempting restore'
+            );
+
+            // 延迟恢复内容，避免与其他状态更新冲突
+            if (contentSyncTimeoutRef.current) {
+              clearTimeout(contentSyncTimeoutRef.current);
+            }
+            contentSyncTimeoutRef.current = setTimeout(() => {
+              if (editor && !editor.isDestroyed) {
+                editor.commands.setContent(confirmedContentRef.current);
+                console.log('[RichTextEditor] Content restored successfully');
+              }
+            }, 100);
             return;
           }
 
+          // 记录有效内容
+          if (!isEmptyContent) {
+            confirmedContentRef.current = html;
+          }
           lastContentRef.current = html;
 
           if (isControlled) {
@@ -161,8 +191,8 @@ export const RichTextEditor = forwardRef<
         }
       },
       [
-        placeholder,
-        handleImageUpload
+        placeholder
+        // 移除 handleImageUpload - 防止回调变化导致编辑器重建
         // 移除 editable - 通过useEffect动态更新，避免重建编辑器
         // 移除 internalContent - 防止循环依赖
         // 移除 onChange, onFocus, onBlur - 这些函数不应该触发重建
@@ -185,15 +215,37 @@ export const RichTextEditor = forwardRef<
     useEffect(() => {
       if (isControlled && editor && content !== editor.getHTML()) {
         // Debug: Syncing external content
+
+        // 清除任何待处理的恢复操作
+        if (contentSyncTimeoutRef.current) {
+          clearTimeout(contentSyncTimeoutRef.current);
+          contentSyncTimeoutRef.current = null;
+        }
+
         editor.commands.setContent(content);
+        confirmedContentRef.current = content;
       }
     }, [content, editor, isControlled]);
+
+    // 组件卸载时清理定时器
+    useEffect(() => {
+      return () => {
+        if (contentSyncTimeoutRef.current) {
+          clearTimeout(contentSyncTimeoutRef.current);
+        }
+      };
+    }, []);
 
     // 暴露给父组件的方法
     useImperativeHandle(ref, () => ({
       getContent: () => editor?.getHTML() || '',
       setContent: (content: string) => {
+        if (contentSyncTimeoutRef.current) {
+          clearTimeout(contentSyncTimeoutRef.current);
+          contentSyncTimeoutRef.current = null;
+        }
         editor?.commands.setContent(content);
+        confirmedContentRef.current = content;
         // 在非受控模式下，也需要更新内部状态
         if (!isControlled) {
           setInternalContent(content);
@@ -206,7 +258,12 @@ export const RichTextEditor = forwardRef<
         editor?.commands.blur();
       },
       clear: () => {
+        if (contentSyncTimeoutRef.current) {
+          clearTimeout(contentSyncTimeoutRef.current);
+          contentSyncTimeoutRef.current = null;
+        }
         editor?.commands.clearContent();
+        confirmedContentRef.current = '';
         // 在非受控模式下，也需要清空内部状态
         if (!isControlled) {
           setInternalContent('');
